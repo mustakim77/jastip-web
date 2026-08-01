@@ -1,321 +1,448 @@
 /**
- * JASTIP WEB - ADMIN JS
- * Terintegrasi dengan Supabase Asli
+ * JASTIP WEB - ADMIN JS (Optional Photo Upload, Edit & Maps)
  */
 
-// Konfigurasi Supabase
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4cXBicHpzdWZnbmptaW1iYWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MjU1MTgsImV4cCI6MjEwMTEwMTUxOH0.kUqq8XLCJ6IZHNGVedk_mFZQlDVlCJ1-TheYq4v2988';
 
-// Inisialisasi SDK Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const adminApp = {
     state: {
         merchants: [],
         orders: [],
-        settings: {},
-        banners: []
+        banners: [],
+        settings: {}
     },
 
-    init() {
-        lucide.createIcons();
-        this.setupNavigation();
-        this.setupForms();
-        
-        // Panggil fetch awal dari Supabase
-        this.fetchDashboardData();
+    async init() {
+        this.setupSidebarToggle();
+        await this.fetchAllData();
+        this.setupEventListeners();
+        this.initLeafletMap();
     },
 
-    // --- NAVIGATION ---
-    setupNavigation() {
-        const links = document.querySelectorAll('.nav-link[data-target]');
-        links.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const target = link.getAttribute('data-target');
-                
-                links.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
+    logout() {
+        localStorage.removeItem('jastipUser');
+        window.location.href = 'index.html';
+    },
 
-                document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
-                document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
-                
-                const targetSec = document.getElementById(`sec-${target}`);
-                if(targetSec) {
-                    targetSec.classList.add('active');
-                    targetSec.classList.remove('hidden');
-                }
+    setupSidebarToggle() {
+        const toggleBtn = document.getElementById('menu-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                document.getElementById('wrapper').classList.toggle('toggled');
             });
-        });
-    },
-
-    // --- SUPABASE API CALLS ---
-    async fetchDashboardData() {
-        try {
-            // Ambil semua data secara paralel (Asynchronous)
-            const [merchRes, orderRes, setRes, bannerRes] = await Promise.all([
-                supabase.from('merchants').select('*').order('id', { ascending: false }),
-                supabase.from('orders').select('*').order('date', { ascending: false }),
-                supabase.from('settings').select('*').limit(1).maybeSingle(),
-                supabase.from('banners').select('*').order('id', { ascending: false })
-            ]);
-
-            this.state.merchants = merchRes.data || [];
-            this.state.orders = orderRes.data || [];
-            this.state.banners = bannerRes.data || [];
-            
-            // Jika tabel settings kosong, gunakan default
-            this.state.settings = setRes.data || { ongkir: 2500, adminFee: 2000, wa: '6281234567890', radius: 15, logo: '' };
-
-            this.renderAll();
-        } catch (error) {
-            this.showToast('Gagal memuat data dari server Supabase.');
-            console.error("Fetch Data Error:", error);
         }
     },
 
-    renderAll() {
-        this.renderDashboardStats();
-        this.renderMerchants();
-        this.renderOrders();
-        this.renderSettings();
-        this.renderBanners();
+    switchSection(targetId, el) {
+        document.querySelectorAll('.list-group-item').forEach(i => i.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
+        const target = document.getElementById(`section-${targetId}`);
+        if (target) target.style.display = 'block';
+
+        const titles = {
+            'dashboard': 'Dashboard Overview',
+            'merchant': 'Kelola Stan / Merchant',
+            'pesanan': 'Pesanan Masuk',
+            'banner': 'Banner Promosi',
+            'pengaturan': 'Pengaturan Tarif & Sistem'
+        };
+        document.getElementById('pageTitle').innerText = titles[targetId] || 'Admin Panel';
+
+        if (window.innerWidth <= 768) {
+            document.getElementById('wrapper').classList.remove('toggled');
+        }
     },
 
-    renderDashboardStats() {
+    async fetchAllData() {
+        Swal.fire({ title: 'Memuat data...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+        try {
+            const [mRes, oRes, bRes, sRes] = await Promise.all([
+                dbClient.from('merchants').select('*').order('id', { ascending: false }),
+                dbClient.from('orders').select('*').order('date', { ascending: false }),
+                dbClient.from('banners').select('*').order('id', { ascending: false }),
+                dbClient.from('settings').select('*').eq('id', 1).maybeSingle()
+            ]);
+
+            this.state.merchants = mRes.data || [];
+            this.state.orders = oRes.data || [];
+            this.state.banners = bRes.data || [];
+            if (sRes.data) {
+                this.state.settings = sRes.data;
+                this.renderSettingsValues(sRes.data);
+            }
+
+            this.renderDashboard();
+            this.renderMerchants();
+            this.renderOrders();
+            this.renderBanners();
+
+            Swal.close();
+        } catch (err) {
+            Swal.fire('Error', 'Gagal memuat data dari database: ' + err.message, 'error');
+        }
+    },
+
+    renderDashboard() {
         document.getElementById('stat-orders').innerText = this.state.orders.length;
         document.getElementById('stat-merchants').innerText = this.state.merchants.length;
         
-        const revenue = this.state.orders.reduce((sum, order) => {
-            if (order.status !== 'Dibatalkan') return sum + Number(this.state.settings.adminFee);
-            return sum;
-        }, 0);
-        document.getElementById('stat-revenue').innerText = `Rp ${revenue.toLocaleString('id-ID')}`;
+        const feePerOrder = Number(this.state.settings.service_fee || '');
+        const totalRevenue = this.state.orders.length * feePerOrder;
+        document.getElementById('stat-revenue').innerText = `Rp ${totalRevenue.toLocaleString('id-ID')}`;
     },
 
-    // --- MERCHANT MANAGEMENT ---
+    renderSettingsValues(settings) {
+        const wa = document.getElementById('setWa');
+        const min = document.getElementById('setMin');
+        const max = document.getElementById('setMax');
+        const service = document.getElementById('setService');
+        const shippingRate = document.getElementById('setShippingRate');
+
+        if (wa) wa.value = settings.admin_whatsapp || '';
+        if (min) min.value = settings.minimum_fee || '';
+        if (max) max.value = settings.maximum_fee || '';
+        if (service) service.value = settings.service_fee || '';
+        if (shippingRate) shippingRate.value = settings.shipping_rate_per_km || '';
+    },
+
     renderMerchants() {
-        const tbody = document.getElementById('table-merchants');
+        const tbody = document.getElementById('tableMerchants');
+        if (!tbody) return;
+        if (this.state.merchants.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Belum ada stan terdaftar.</td></tr>`;
+            return;
+        }
+
         tbody.innerHTML = this.state.merchants.map(m => `
             <tr>
-                <td><img src="${m.img}" class="table-img" alt="Foto"></td>
-                <td class="fw-bold">${m.name}</td>
-                <td>${m.category}</td>
-                <td>${m.lat}, ${m.lng}</td>
-                <td><span class="badge ${m.status ? m.status.toLowerCase() : 'aktif'}">${m.status || 'Aktif'}</span></td>
-                <td>
-                    <button class="btn-icon" onclick="adminApp.editMerchant(${m.id})"><i data-lucide="edit-2"></i></button>
-                    <button class="btn-icon delete" onclick="adminApp.deleteMerchant(${m.id})"><i data-lucide="trash-2"></i></button>
+                <td><img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200'}" class="rounded-3" style="width:40px; height:40px; object-fit:cover;"></td>
+                <td class="fw-bold">${m.nama || m.name}</td>
+                <td><small class="text-muted">${m.alamat || '-'}</small></td>
+                <td>${m.jam_buka || m.hours || '08:00 - 21:00'}</td>
+                <td><span class="badge bg-success-subtle text-success">Aktif</span></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-light text-primary rounded-3 me-1" onclick="adminApp.editMerchant(${m.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-light text-danger rounded-3" onclick="adminApp.deleteMerchant(${m.id})"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
-        lucide.createIcons();
     },
 
-    async saveMerchant(e) {
-        e.preventDefault();
-        const id = document.getElementById('merch-id').value;
-        const payload = {
-            name: document.getElementById('merch-name').value,
-            category: document.getElementById('merch-category').value,
-            hours: document.getElementById('merch-hours').value,
-            lat: document.getElementById('merch-lat').value,
-            lng: document.getElementById('merch-lng').value,
-            img: document.getElementById('merch-img').value,
-            status: 'Aktif'
-        };
-
-        try {
-            if (id) {
-                // Update
-                const { error } = await supabase.from('merchants').update(payload).eq('id', id);
-                if (error) throw error;
-                this.showToast("Data Merchant berhasil diperbarui!");
-            } else {
-                // Insert
-                const { error } = await supabase.from('merchants').insert([payload]);
-                if (error) throw error;
-                this.showToast("Merchant baru berhasil ditambahkan!");
-            }
-            this.closeModal('merchant-modal');
-            this.fetchDashboardData();
-        } catch(err) {
-            this.showToast("Terjadi kesalahan saat menyimpan merchant.");
-            console.error(err);
-        }
+    openStanModal() {
+        document.getElementById('formStan').reset();
+        document.getElementById('stanId').value = '';
+        document.getElementById('stanFotoExisting').value = '';
+        document.getElementById('modalStanTitle').innerText = 'Tambah Stan / Merchant Baru';
+        new bootstrap.Modal(document.getElementById('modalStan')).show();
+        setTimeout(() => {
+            if (this.mapInstance) this.mapInstance.invalidateSize();
+        }, 300);
     },
 
     editMerchant(id) {
-        const m = this.state.merchants.find(x => x.id === id);
-        if(!m) return;
-        
-        document.getElementById('merch-id').value = m.id;
-        document.getElementById('merch-name').value = m.name;
-        document.getElementById('merch-category').value = m.category;
-        document.getElementById('merch-hours').value = m.hours || '08:00 - 20:00';
-        document.getElementById('merch-lat').value = m.lat;
-        document.getElementById('merch-lng').value = m.lng;
-        document.getElementById('merch-img').value = m.img;
-        
-        this.openModal('merchant-modal');
+        const m = this.state.merchants.find(x => x.id == id);
+        if (!m) return;
+
+        document.getElementById('stanId').value = m.id;
+        document.getElementById('stanNama').value = m.nama || m.name || '';
+        document.getElementById('stanAlamat').value = m.alamat || '';
+        document.getElementById('stanLat').value = m.latitude || m.lat || '-7.8543';
+        document.getElementById('stanLng').value = m.longitude || m.lng || '111.4678';
+        document.getElementById('stanBuka').value = m.jam_buka || m.hours?.split(' - ')[0] || '08:00';
+        document.getElementById('stanTutup').value = m.jam_tutup || m.hours?.split(' - ')[1] || '21:00';
+        document.getElementById('stanFotoExisting').value = m.foto || m.img || '';
+        document.getElementById('stanCategory').value = m.category || 'Makanan';
+
+        document.getElementById('modalStanTitle').innerText = 'Edit Stan / Merchant';
+        new bootstrap.Modal(document.getElementById('modalStan')).show();
+
+        setTimeout(() => {
+            if (this.mapInstance) {
+                this.mapInstance.invalidateSize();
+                const lat = parseFloat(document.getElementById('stanLat').value);
+                const lng = parseFloat(document.getElementById('stanLng').value);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    this.setMarkerPosition(lat, lng, 16);
+                }
+            }
+        }, 300);
     },
 
-    async deleteMerchant(id) {
-        if(!confirm("Yakin ingin menghapus merchant ini?")) return;
-        try {
-            const { error } = await supabase.from('merchants').delete().eq('id', id);
-            if (error) throw error;
-            this.showToast("Merchant berhasil dihapus.");
-            this.fetchDashboardData();
-        } catch(err) {
-            this.showToast("Gagal menghapus merchant.");
-            console.error(err);
-        }
-    },
-
-    // --- ORDER MANAGEMENT ---
     renderOrders() {
-        const tbody = document.getElementById('table-orders');
+        const tbody = document.getElementById('tableOrders');
+        if (!tbody) return;
+        if (this.state.orders.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Belum ada pesanan masuk.</td></tr>`;
+            return;
+        }
+
         tbody.innerHTML = this.state.orders.map(o => `
             <tr>
-                <td class="fw-bold">${o.id}</td>
+                <td class="fw-bold text-primary">${o.id}</td>
                 <td>${o.date}</td>
                 <td>${o.customer}</td>
                 <td>${o.merchant}</td>
-                <td>Rp ${Number(o.total).toLocaleString('id-ID')}</td>
-                <td>
-                    <select class="status-select" onchange="adminApp.updateOrderStatus('${o.id}', this.value)">
-                        <option value="Menunggu" ${o.status === 'Menunggu' ? 'selected' : ''}>Menunggu</option>
-                        <option value="Diproses" ${o.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
-                        <option value="Selesai" ${o.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
-                        <option value="Dibatalkan" ${o.status === 'Dibatalkan' ? 'selected' : ''}>Dibatalkan</option>
-                    </select>
-                </td>
-                <td>
-                    <button class="btn-icon" title="Lihat Detail"><i data-lucide="eye"></i></button>
-                </td>
+                <td class="fw-semibold">Rp ${Number(o.total).toLocaleString('id-ID')}</td>
+                <td><span class="badge bg-warning-subtle text-warning">${o.status || 'Menunggu'}</span></td>
             </tr>
         `).join('');
-        lucide.createIcons();
     },
 
-    async updateOrderStatus(id, newStatus) {
-        try {
-            const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', id);
-            if (error) throw error;
-            this.showToast(`Status pesanan ${id} diperbarui.`);
-            this.fetchDashboardData(); 
-        } catch(err) {
-            this.showToast("Gagal memperbarui status pesanan.");
-            console.error(err);
-        }
-    },
-
-    // --- BANNER MANAGEMENT ---
     renderBanners() {
-        const grid = document.getElementById('banner-list');
-        grid.innerHTML = this.state.banners.map(b => `
-            <div class="banner-card">
-                <img src="${b.url}" alt="Banner">
-                <button class="btn-delete-banner" onclick="adminApp.deleteBanner(${b.id})">
-                    <i data-lucide="trash-2"></i>
-                </button>
+        const container = document.getElementById('bannerContainer');
+        if (!container) return;
+        if (this.state.banners.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">Belum ada banner.</p>';
+            return;
+        }
+
+        container.innerHTML = this.state.banners.map(b => `
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <img src="${b.url}" style="height: 120px; object-fit: cover;">
+                    <div class="card-body p-2 text-end">
+                        <button class="btn btn-sm btn-light text-danger" onclick="adminApp.deleteBanner(${b.id})"><i class="fa-solid fa-trash"></i> Hapus</button>
+                    </div>
+                </div>
             </div>
         `).join('');
-        lucide.createIcons();
     },
 
-    async addBanner(e) {
+    openBannerModal() {
+        document.getElementById('formBanner').reset();
+        new bootstrap.Modal(document.getElementById('modalBanner')).show();
+    },
+
+    async saveBanner(e) {
         e.preventDefault();
-        const url = document.getElementById('banner-url').value;
+        const url = document.getElementById('bannerUrlInput').value;
+        const title = document.getElementById('bannerTitleInput').value;
+        const subtitle = document.getElementById('bannerSubtitleInput').value;
+
         try {
-            const { error } = await supabase.from('banners').insert([{ url }]);
-            if(error) throw error;
-            this.showToast("Banner berhasil ditambahkan!");
-            document.getElementById('form-banner').reset();
-            this.closeModal('banner-modal');
-            this.fetchDashboardData();
-        } catch(err) {
-            this.showToast("Gagal menambahkan banner.");
-            console.error(err);
+            const { error } = await dbClient.from('banners').insert([{ 
+                url: url, 
+                title: title, 
+                subtitle: subtitle 
+            }]);
+            
+            if (error) throw error;
+            bootstrap.Modal.getInstance(document.getElementById('modalBanner')).hide();
+            alert("✅ Banner berhasil ditambahkan!");
+            this.fetchAllData();
+        } catch (err) {
+            alert("❌ Gagal: " + err.message);
         }
     },
 
     async deleteBanner(id) {
-        if(!confirm("Hapus banner ini dari slider utama?")) return;
         try {
-            const { error } = await supabase.from('banners').delete().eq('id', id);
-            if(error) throw error;
-            this.showToast("Banner dihapus.");
-            this.fetchDashboardData();
+            const { error } = await dbClient.from('banners').delete().eq('id', id);
+            if (error) throw error;
+            Swal.fire('Dihapus!', 'Banner dihapus.', 'success');
+            this.fetchAllData();
         } catch (err) {
-            this.showToast("Gagal menghapus banner.");
-            console.error(err);
+            Swal.fire('Gagal', err.message, 'error');
         }
     },
 
-    // --- SETTINGS ---
-    renderSettings() {
-        const s = this.state.settings;
-        document.getElementById('set-ongkir').value = s.ongkir || 2500;
-        document.getElementById('set-admin-fee').value = s.adminFee || 2000;
-        document.getElementById('set-wa').value = s.wa || '6281234567890';
-        document.getElementById('set-radius').value = s.radius || 15;
-        document.getElementById('set-logo').value = s.logo || '';
-    },
-
-    async saveSettings(e) {
-        e.preventDefault();
-        const payload = {
-            ongkir: document.getElementById('set-ongkir').value,
-            adminFee: document.getElementById('set-admin-fee').value,
-            wa: document.getElementById('set-wa').value,
-            radius: document.getElementById('set-radius').value,
-            logo: document.getElementById('set-logo').value
-        };
-
-        try {
-            // Karena tabel setting biasanya cuma butuh 1 baris, kita gunakan pendekatan update/upsert (ID = 1)
-            const { error } = await supabase.from('settings').upsert({ id: 1, ...payload });
-            if(error) throw error;
-            this.showToast("Pengaturan sistem berhasil diperbarui!");
-            this.fetchDashboardData();
-        } catch (err) {
-            this.showToast("Gagal menyimpan pengaturan.");
-            console.error(err);
+    async deleteMerchant(id) {
+        const confirm = await Swal.fire({ title: 'Hapus stan?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya' });
+        if (confirm.isConfirmed) {
+            try {
+                const { error } = await dbClient.from('merchants').delete().eq('id', id);
+                if (error) throw error;
+                Swal.fire('Terhapus!', 'Stan dihapus.', 'success');
+                this.fetchAllData();
+            } catch (err) {
+                Swal.fire('Gagal', err.message, 'error');
+            }
         }
     },
 
-    // --- UTILITIES ---
-    setupForms() {
-        document.getElementById('form-merchant').addEventListener('submit', (e) => this.saveMerchant(e));
-        document.getElementById('form-settings').addEventListener('submit', (e) => this.saveSettings(e));
-        document.getElementById('form-banner').addEventListener('submit', (e) => this.addBanner(e));
-    },
+    setupEventListeners() {
+        // // Form Pengaturan
+        const formPengaturan = document.getElementById('formPengaturan');
+        if (formPengaturan) {
+            formPengaturan.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = formPengaturan.querySelector('button');
+                const originalText = btn.innerText;
+                btn.innerText = "Menyimpan...";
 
-    openModal(id) {
-        if (id === 'merchant-modal' && !document.getElementById('merch-id').value) {
-            document.getElementById('form-merchant').reset();
+                try {
+                    const wa = document.getElementById('setWa').value.toString();
+                    const min = parseFloat(document.getElementById('setMin').value) || 0;
+                    const max = parseFloat(document.getElementById('setMax').value) || 0;
+                    const service = parseFloat(document.getElementById('setService').value) || 0;
+                    const shippingRate = parseFloat(document.getElementById('setShippingRate').value) || 0;
+
+                    const { error } = await dbClient.from('settings').upsert({
+                        id: 1,
+                        admin_whatsapp: wa,
+                        minimum_fee: min,
+                        maximum_fee: max,
+                        service_fee: service,
+                        shipping_rate_per_km: shippingRate
+                    });
+
+                    if (error) throw error;
+                    
+                    // Notifikasi sukses menggunakan alert standar browser
+                    alert("✅ Pengaturan berhasil diupdate!");
+                    this.fetchAllData();
+                } catch (err) {
+                    alert("❌ Gagal menyimpan data!\nPenyebab: " + err.message);
+                } finally {
+                    btn.innerText = originalText;
+                }
+            });
         }
-        document.getElementById(id).classList.remove('hidden');
+
+        // Form Stan Baru / Edit Stan
+        const formStan = document.getElementById('formStan');
+        if (formStan) {
+            formStan.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = formStan.querySelector('button');
+                const originalText = btn.innerText;
+                btn.innerText = "Menyimpan...";
+
+                try {
+                    const id = document.getElementById('stanId').value;
+                    const nama = document.getElementById('stanNama').value;
+                    const alamat = document.getElementById('stanAlamat').value;
+                    const lat = parseFloat(document.getElementById('stanLat').value);
+                    const lng = parseFloat(document.getElementById('stanLng').value);
+                    const buka = document.getElementById('stanBuka').value;
+                    const tutup = document.getElementById('stanTutup').value;
+                    const existingFoto = document.getElementById('stanFotoExisting').value;
+                    const fileInput = document.getElementById('stanFile');
+                    const kategoriElement = document.getElementById('stanCategory') || document.getElementById('merchantCategory');
+                    const kategori = kategoriElement ? kategoriElement.value : 'Makanan';
+
+                    if (isNaN(lat) || isNaN(lng)) {
+                        throw new Error("Silakan tentukan titik lokasi pada peta terlebih dahulu.");
+                    }
+
+                    // Handle upload foto dari HP (Konversi ke Base64)
+                    let fotoFinal = existingFoto || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600';
+                    if (fileInput.files && fileInput.files[0]) {
+                        fotoFinal = await this.toBase64(fileInput.files[0]);
+                    }
+
+                    const payload = {
+                        nama: nama,
+                        name: nama,
+                        category: kategori,
+                        foto: fotoFinal,
+                        img: fotoFinal,
+                        alamat: alamat,
+                        latitude: lat,
+                        lat: lat.toString(),
+                        longitude: lng,
+                        lng: lng.toString(),
+                        jam_buka: buka,
+                        jam_tutup: tutup,
+                        hours: `${buka} - ${tutup}`,
+                        status_buka: true
+                    };
+
+                    if (id) {
+                        // Update Stan
+                        const { error } = await dbClient.from('merchants').update(payload).eq('id', id);
+                        if (error) throw error;
+                    } else {
+                        // Insert Stan Baru
+                        const { error } = await dbClient.from('merchants').insert([payload]);
+                        if (error) throw error;
+                    }
+
+                    Swal.fire("Berhasil!", "Data stan berhasil disimpan!", "success");
+                    bootstrap.Modal.getInstance(document.getElementById('modalStan')).hide();
+                    this.fetchAllData();
+                } catch (err) {
+                    Swal.fire("Gagal", err.message, "error");
+                } finally {
+                    btn.innerText = originalText;
+                }
+            });
+        }
     },
 
-    closeModal(id) {
-        document.getElementById(id).classList.add('hidden');
-        if (id === 'merchant-modal') document.getElementById('form-merchant').reset();
+    toBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
     },
 
-    showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.innerText = msg;
-        toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3000);
+    setMarkerPosition(lat, lng, zoom = 16) {
+        document.getElementById('stanLat').value = lat;
+        document.getElementById('stanLng').value = lng;
+        if (this.mapInstance) {
+            this.mapInstance.setView([lat, lng], zoom);
+            if (this.mapMarker) {
+                this.mapMarker.setLatLng([lat, lng]);
+            } else {
+                this.mapMarker = L.marker([lat, lng], { draggable: true }).addTo(this.mapInstance);
+                this.mapMarker.on('dragend', () => {
+                    const pos = this.mapMarker.getLatLng();
+                    document.getElementById('stanLat').value = pos.lat;
+                    document.getElementById('stanLng').value = pos.lng;
+                });
+            }
+        }
     },
 
-    logout() {
-        this.showToast("Keluar dari panel admin...");
-        setTimeout(() => window.location.href = 'index.html', 1000);
+    initLeafletMap() {
+        const defaultLat = -7.8543;
+        const defaultLng = 111.4678;
+
+        const mapContainer = document.getElementById('interactiveMap');
+        if (mapContainer && typeof L !== 'undefined') {
+            const map = L.map('interactiveMap').setView([defaultLat, defaultLng], 15);
+            this.mapInstance = map;
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('click', (e) => {
+                this.setMarkerPosition(e.latlng.lat, e.latlng.lng, map.getZoom());
+            });
+
+            const btnGetGps = document.getElementById('btnGetGps');
+            if (btnGetGps) {
+                btnGetGps.addEventListener('click', () => {
+                    if (!navigator.geolocation) {
+                        alert("Browser Anda tidak mendeteksi GPS.");
+                        return;
+                    }
+                    btnGetGps.innerText = "Mencari Lokasi...";
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            this.setMarkerPosition(position.coords.latitude, position.coords.longitude, 18);
+                            btnGetGps.innerText = "📍 Gunakan GPS HP Saya";
+                            Swal.fire({ icon: 'success', title: 'GPS Ditemukan!', timer: 1500, showConfirmButton: false });
+                        },
+                        () => {
+                            alert("Gagal mendeteksi GPS. Periksa izin lokasi browser Anda.");
+                            btnGetGps.innerText = "📍 Gunakan GPS HP Saya";
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                });
+            }
+        }
     }
 };
 
