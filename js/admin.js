@@ -2,20 +2,16 @@ const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4cXBicHpzdWZnbmptaW1iYWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MjU1MTgsImV4cCI6MjEwMTEwMTUxOH0.kUqq8XLCJ6IZHNGVedk_mFZQlDVlCJ1-TheYq4v2988';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
-    await verifyAdmin();
-    initAdminNavigation();
-    loadDashboardStats();
-    loadAdminMerchants();
-    loadAdminOrders();
-    loadSettings();
-    initMerchantCrud();
-    initSettingsForm();
+    initNavigation();
+    loadHomeData();
+    initAuth();
+    initOrderForm();
 });
 
-function showAdminToast(message) {
-    const toast = document.getElementById('adminToast');
+function showToast(message) {
+    const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(() => {
@@ -23,199 +19,284 @@ function showAdminToast(message) {
     }, 3000);
 }
 
-async function verifyAdmin() {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) {
-        window.location.href = 'index.html';
-        return;
-    }
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (!profile || profile.role !== 'admin') {
-        alert('Akses ditolak. Anda bukan admin.');
-        window.location.href = 'index.html';
-    }
-}
-
-function initAdminNavigation() {
-    const links = document.querySelectorAll('.sidebar-link[data-target]');
-    links.forEach(link => {
-        link.addEventListener('click', (e) => {
+function initNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
             e.preventDefault();
-            const targetId = link.getAttribute('data-target');
+            const targetId = item.getAttribute('data-target');
+            
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
 
-            links.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-
-            document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
             document.getElementById(targetId).classList.add('active');
+
+            if (targetId === 'pesanan-view') {
+                loadOrderHistory();
+            } else if (targetId === 'member-view') {
+                checkAuthStatus();
+            }
         });
     });
-
-    document.getElementById('adminLogoutBtn').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = 'index.html';
-    });
 }
 
-async function loadDashboardStats() {
-    const { count: merchantCount } = await supabase.from('merchants').select('*', { count: 'exact', head: true });
-    const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-    const { count: completedCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'Selesai');
-    
-    const { data: orders } = await supabase.from('orders').select('total').eq('status', 'Selesai');
-    const totalPendapatan = orders ? orders.reduce((sum, o) => sum + o.total, 0) : 0;
+async function loadHomeData() {
+    try {
+        const { data: merchants, error } = await supabase.from('merchants').select('*');
+        if (error) throw error;
 
-    document.getElementById('statTotalMerchant').textContent = merchantCount || 0;
-    document.getElementById('statTotalOrder').textContent = orderCount || 0;
-    document.getElementById('statCompletedOrder').textContent = completedCount || 0;
-    document.getElementById('statTotalPendapatan').textContent = `Rp ${totalPendapatan.toLocaleString()}`;
+        renderMerchantGrids(merchants);
+        initSearch(merchants);
+    } catch (err) {
+        console.error('Error loading home data:', err);
+    }
 }
 
-async function loadAdminMerchants() {
-    const { data: merchants, error } = await supabase.from('merchants').select('*');
-    if (error) return;
+function renderMerchantGrids(merchants) {
+    const popularGrid = document.getElementById('popularMerchantGrid');
+    const latestGrid = document.getElementById('latestMerchantGrid');
+    const nearestGrid = document.getElementById('nearestMerchantGrid');
 
-    const tbody = document.getElementById('merchantTableBody');
-    tbody.innerHTML = merchants.map(m => `
-        <tr>
-            <td><img src="${m.foto || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;"></td>
-            <td>${m.nama}</td>
-            <td>${m.kategori}</td>
-            <td><span class="badge ${m.status.toLowerCase()}">${m.status}</span></td>
-            <td>
-                <button class="btn-secondary" onclick="editMerchant('${m.id}')">Edit</button>
-                <button class="btn-secondary" style="background:#FEE2E2; color:#DC2626;" onclick="deleteMerchant('${m.id}')">Hapus</button>
-            </td>
-        </tr>
+    const html = merchants.map(m => `
+        <div class="merchant-card glass-card" onclick="openMerchantDetail('${m.id}')">
+            <img src="${m.foto || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${m.nama}" class="merchant-img">
+            <div class="merchant-info">
+                <span class="badge ${m.status.toLowerCase()}">${m.status}</span>
+                <h4 class="merchant-title">${m.nama}</h4>
+                <div class="merchant-meta">
+                    <span>${m.kategori}</span>
+                    <span>🕒 ${m.jam_buka} - ${m.jam_tutup}</span>
+                </div>
+            </div>
+        </div>
     `).join('');
+
+    popularGrid.innerHTML = html;
+    latestGrid.innerHTML = html;
+    nearestGrid.innerHTML = html;
     lucide.createIcons();
 }
 
-document.getElementById('openAddMerchantModalBtn').addEventListener('click', () => {
-    document.getElementById('adminMerchantForm').reset();
-    document.getElementById('editMerchantId').value = '';
-    document.getElementById('merchantModalTitle').textContent = 'Tambah Merchant';
-    document.getElementById('adminMerchantModal').classList.add('show');
+function initSearch(merchants) {
+    const searchInput = document.getElementById('searchMerchantInput');
+    searchInput.addEventListener('input', (e) => {
+        const keyword = e.target.value.toLowerCase();
+        const filtered = merchants.filter(m => m.nama.toLowerCase().includes(keyword) || m.kategori.toLowerCase().includes(keyword));
+        renderMerchantGrids(filtered);
+    });
+}
+
+async function openMerchantDetail(merchantId) {
+    try {
+        const { data: merchant, error } = await supabase.from('merchants').select('*').eq('id', merchantId).single();
+        if (error) throw error;
+
+        const body = document.getElementById('merchantDetailBody');
+        body.innerHTML = `
+            <img src="${merchant.foto || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${merchant.nama}" style="width:150px; height:150px; border-radius:50%; object-fit:cover; margin:0 auto 16px; display:block;">
+            <h2 style="text-align:center; margin-bottom:8px;">${merchant.nama}</h2>
+            <p style="text-align:center; color:#6B7280; margin-bottom:16px;">${merchant.alamat}</p>
+            <div style="display:flex; justify-content:space-around; margin-bottom:20px; font-size:14px;">
+                <span>📂 ${merchant.kategori}</span>
+                <span>🕒 ${merchant.jam_buka} - ${merchant.jam_tutup}</span>
+                <span class="badge ${merchant.status.toLowerCase()}">${merchant.status}</span>
+            </div>
+            <button class="btn-primary" onclick="openOrderModal('${merchant.id}', ${merchant.latitude}, ${merchant.longitude})">Pesan Sekarang</button>
+        `;
+        document.getElementById('merchantModal').classList.add('show');
+    } catch (err) {
+        showToast('Gagal memuat detail merchant');
+    }
+}
+
+document.getElementById('closeMerchantModal').addEventListener('click', () => {
+    document.getElementById('merchantModal').classList.remove('show');
 });
 
-document.getElementById('closeAdminMerchantModal').addEventListener('click', () => {
-    document.getElementById('adminMerchantModal').classList.remove('show');
+function calculateHaversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+async function openOrderModal(merchantId, mLat, mLng) {
+    document.getElementById('merchantModal').classList.remove('show');
+    document.getElementById('orderMerchantId').value = merchantId;
+    document.getElementById('orderModal').classList.add('show');
+
+    // Fetch settings for calculation
+    const { data: settings } = await supabase.from('settings').select('*').single();
+    
+    const latInput = document.getElementById('orderLat');
+    const lngInput = document.getElementById('orderLng');
+
+    const updateCalculation = async () => {
+        const uLat = parseFloat(latInput.value) || mLat;
+        const uLng = parseFloat(lngInput.value) || mLng;
+        const distance = calculateHaversine(mLat, mLng, uLat, uLng);
+        const tarif = settings ? settings.tarif_per_km : 5000;
+        const adminFee = settings ? settings.biaya_admin : 2000;
+        const ongkir = Math.round(distance * tarif);
+        const total = ongkir + adminFee;
+
+        document.getElementById('summaryJarak').textContent = `${distance.toFixed(2)} km`;
+        document.getElementById('summaryOngkir').textContent = `Rp ${ongkir.toLocaleString()}`;
+        document.getElementById('summaryBiayaAdmin').textContent = `Rp ${adminFee.toLocaleString()}`;
+        document.getElementById('summaryTotal').textContent = `Rp ${total.toLocaleString()}`;
+    };
+
+    latInput.addEventListener('input', updateCalculation);
+    lngInput.addEventListener('input', updateCalculation);
+    updateCalculation();
+}
+
+document.getElementById('closeOrderModal').addEventListener('click', () => {
+    document.getElementById('orderModal').classList.remove('show');
 });
 
-function initMerchantCrud() {
-    const form = document.getElementById('adminMerchantForm');
+document.getElementById('detectLocationBtn').addEventListener('click', () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            document.getElementById('orderLat').value = pos.coords.latitude;
+            document.getElementById('orderLng').value = pos.coords.longitude;
+            showToast('Lokasi berhasil dideteksi!');
+        }, () => {
+            showToast('Gagal mendeteksi lokasi');
+        });
+    }
+});
+
+function initOrderForm() {
+    const form = document.getElementById('orderForm');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('editMerchantId').value;
-        const nama = document.getElementById('merchantNama').value;
-        const kategori = document.getElementById('merchantKategori').value;
-        const alamat = document.getElementById('merchantAlamat').value;
-        const latitude = parseFloat(document.getElementById('merchantLatitude').value);
-        const longitude = parseFloat(document.getElementById('merchantLongitude').value);
-        const jam_buka = document.getElementById('merchantJamBuka').value;
-        const jam_tutup = document.getElementById('merchantJamTutup').value;
-        const status = document.getElementById('merchantStatus').value;
-
-        const payload = { nama, kategori, alamat, latitude, longitude, jam_buka, jam_tutup, status };
-
-        let error;
-        if (id) {
-            const res = await supabase.from('merchants').update(payload).eq('id', id);
-            error = res.error;
-        } else {
-            const res = await supabase.from('merchants').insert([payload]);
-            error = res.error;
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) {
+            showToast('Silakan login terlebih dahulu untuk memesan');
+            return;
         }
 
+        const merchantId = document.getElementById('orderMerchantId').value;
+        const nama = document.getElementById('orderNama').value;
+        const whatsapp = document.getElementById('orderWhatsapp').value;
+        const alamat = document.getElementById('orderAlamat').value;
+        const lat = parseFloat(document.getElementById('orderLat').value);
+        const lng = parseFloat(document.getElementById('orderLng').value);
+        const daftarPesanan = document.getElementById('orderDaftarPesanan').value;
+        const catatan = document.getElementById('orderCatatan').value;
+
+        const invoice = 'INV-' + Date.now();
+
+        const { error } = await supabase.from('orders').insert([{
+            invoice,
+            member_id: user.id,
+            merchant_id: merchantId,
+            nama,
+            whatsapp,
+            alamat,
+            latitude: lat,
+            longitude: lng,
+            daftar_pesanan: daftarPesanan,
+            catatan,
+            jarak: 2.5,
+            ongkir: 12500,
+            biaya_admin: 2000,
+            total: 14500,
+            status: 'Menunggu'
+        }]);
+
         if (error) {
-            showAdminToast('Gagal menyimpan merchant');
+            showToast('Gagal membuat pesanan');
         } else {
-            showAdminToast('Merchant berhasil disimpan');
-            document.getElementById('adminMerchantModal').classList.remove('show');
-            loadAdminMerchants();
-            loadDashboardStats();
+            showToast('Pesanan berhasil dibuat!');
+            document.getElementById('orderModal').classList.remove('show');
+            form.reset();
         }
     });
 }
 
-async function deleteMerchant(id) {
-    if (confirm('Yakin ingin menghapus merchant ini?')) {
-        const { error } = await supabase.from('merchants').delete().eq('id', id);
-        if (error) {
-            showAdminToast('Gagal menghapus merchant');
-        } else {
-            showAdminToast('Merchant berhasil dihapus');
-            loadAdminMerchants();
-            loadDashboardStats();
+async function checkAuthStatus() {
+    const container = document.getElementById('memberAuthContainer');
+    const user = (await supabase.auth.getUser()).data.user;
+
+    if (!user) {
+        container.innerHTML = `
+            <div class="glass-card" style="max-width:450px; margin:0 auto; padding:30px;">
+                <h2 style="margin-bottom:20px; text-align:center;">Login Member</h2>
+                <form id="loginForm">
+                    <div class="form-group"><label>Email</label><input type="email" id="loginEmail" required></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" required></div>
+                    <button type="submit" class="btn-primary">Login</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                showToast(error.message);
+            } else {
+                showToast('Login berhasil!');
+                checkAuthStatus();
+            }
+        });
+    } else {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (profile && profile.role === 'admin') {
+            window.location.href = 'admin.html';
+            return;
         }
+        container.innerHTML = `
+            <div class="glass-card" style="max-width:500px; margin:0 auto; padding:30px; text-align:center;">
+                <h2>Profil Member</h2>
+                <p style="margin:10px 0; color:#6B7280;">${user.email}</p>
+                <button class="btn-primary" id="logoutBtn" style="margin-top:20px;">Logout</button>
+            </div>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            showToast('Berhasil logout');
+            checkAuthStatus();
+        });
     }
 }
 
-async function loadAdminOrders() {
-    const { data: orders, error } = await supabase.from('orders').select('*');
-    if (error) return;
+async function loadOrderHistory() {
+    const container = document.getElementById('orderContentContainer');
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) {
+        container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Silakan login di menu Member untuk melihat riwayat pesanan.</p></div>`;
+        return;
+    }
 
-    const tbody = document.getElementById('adminOrderTableBody');
-    tbody.innerHTML = orders.map(o => `
-        <tr>
-            <td>${o.invoice}</td>
-            <td>${o.nama}</td>
-            <td>${o.daftar_pesanan}</td>
-            <td>Rp ${o.total.toLocaleString()}</td>
-            <td><span class="badge buka">${o.status}</span></td>
-            <td>
-                <select onchange="updateOrderStatus('${o.id}', this.value)">
-                    <option value="Menunggu" ${o.status === 'Menunggu' ? 'selected' : ''}>Menunggu</option>
-                    <option value="Diproses" ${o.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
-                    <option value="Sedang Dibelikan" ${o.status === 'Sedang Dibelikan' ? 'selected' : ''}>Sedang Dibelikan</option>
-                    <option value="Menuju Pelanggan" ${o.status === 'Menuju Pelanggan' ? 'selected' : ''}>Menuju Pelanggan</option>
-                    <option value="Selesai" ${o.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
-                    <option value="Dibatalkan" ${o.status === 'Dibatalkan' ? 'selected' : ''}>Dibatalkan</option>
-                </select>
-            </td>
-        </tr>
+    const { data: orders, error } = await supabase.from('orders').select('*').eq('member_id', user.id);
+    if (error || !orders.length) {
+        container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Belum ada riwayat pesanan.</p></div>`;
+        return;
+    }
+
+    container.innerHTML = orders.map(o => `
+        <div class="glass-card" style="margin-bottom:16px; padding:20px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h4>${o.invoice}</h4>
+                <p style="font-size:13px; color:#6B7280;">${o.daftar_pesanan}</p>
+                <span class="badge buka" style="margin-top:6px; display:inline-block;">${o.status}</span>
+            </div>
+            <div style="text-align:right;">
+                <strong>Rp ${o.total.toLocaleString()}</strong>
+            </div>
+        </div>
     `).join('');
 }
 
-async function updateOrderStatus(orderId, status) {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
-    if (error) {
-        showAdminToast('Gagal mengubah status pesanan');
-    } else {
-        showAdminToast('Status pesanan diperbarui');
-        loadDashboardStats();
-    }
-}
-
-async function loadSettings() {
-    const { data: settings } = await supabase.from('settings').select('*').single();
-    if (settings) {
-        document.getElementById('settingAdminWhatsapp').value = settings.admin_whatsapp || '';
-        document.getElementById('settingTarifPerKm').value = settings.tarif_per_km || '';
-        document.getElementById('settingBiayaAdmin').value = settings.biaya_admin || '';
-        document.getElementById('settingRadiusMaksimal').value = settings.radius_maksimal || '';
-        document.getElementById('settingNamaWebsite').value = settings.nama_website || '';
-    }
-}
-
-function initSettingsForm() {
-    const form = document.getElementById('settingsForm');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const admin_whatsapp = document.getElementById('settingAdminWhatsapp').value;
-        const tarif_per_km = parseFloat(document.getElementById('settingTarifPerKm').value);
-        const biaya_admin = parseFloat(document.getElementById('settingBiayaAdmin').value);
-        const radius_maksimal = parseFloat(document.getElementById('settingRadiusMaksimal').value);
-        const nama_website = document.getElementById('settingNamaWebsite').value;
-
-        const { error } = await supabase.from('settings').update({
-            admin_whatsapp, tarif_per_km, biaya_admin, radius_maksimal, nama_website
-        }).eq('id', 1); // Assuming single settings row ID 1
-
-        if (error) {
-            showAdminToast('Gagal menyimpan pengaturan');
-        } else {
-            showAdminToast('Pengaturan berhasil diperbarui');
-        }
-    });
+async function initAuth() {
+    // Auth initialized on tab click
 }
