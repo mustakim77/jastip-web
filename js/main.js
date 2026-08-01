@@ -1,13 +1,27 @@
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4cXBicHpzdWZnbmptaW1iYWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MjU1MTgsImV4cCI6MjEwMTEwMTUxOH0.kUqq8XLCJ6IZHNGVedk_mFZQlDVlCJ1-TheYq4v2988';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
+let supabase = null;
+if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+// Fungsi utama yang langsung berjalan begitu skrip dimuat
+function initApp() {
+    if (window.lucide) {
+        lucide.createIcons();
+    }
     initNavigation();
     loadHomeData();
     initOrderForm();
-});
+}
+
+// Pastikan berjalan baik saat DOM siap maupun jika sudah terlanjur dimuat
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 function showToast(message) {
     const toast = document.getElementById('toast');
@@ -49,6 +63,7 @@ function initNavigation() {
 }
 
 async function loadHomeData() {
+    if (!supabase) return;
     try {
         const { data: merchants, error } = await supabase.from('merchants').select('*');
         if (error) throw error;
@@ -90,7 +105,7 @@ function renderMerchantGrids(merchants) {
     if (popularGrid) popularGrid.innerHTML = html;
     if (latestGrid) latestGrid.innerHTML = html;
     if (nearestGrid) nearestGrid.innerHTML = html;
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 }
 
 function initSearch(merchants) {
@@ -104,6 +119,7 @@ function initSearch(merchants) {
 }
 
 async function openMerchantDetail(merchantId) {
+    if (!supabase) return;
     try {
         const { data: merchant, error } = await supabase.from('merchants').select('*').eq('id', merchantId).single();
         if (error) throw error;
@@ -151,7 +167,11 @@ async function openOrderModal(merchantId, mLat, mLng) {
     document.getElementById('orderMerchantId').value = merchantId;
     document.getElementById('orderModal').classList.add('show');
 
-    const { data: settings } = await supabase.from('settings').select('*').limit(1).maybeSingle();
+    let settings = null;
+    if (supabase) {
+        const res = await supabase.from('settings').select('*').limit(1).maybeSingle();
+        settings = res.data;
+    }
     
     const latInput = document.getElementById('orderLat');
     const lngInput = document.getElementById('orderLng');
@@ -205,6 +225,7 @@ function initOrderForm() {
     if (!form) return;
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!supabase) return;
         const user = (await supabase.auth.getUser()).data.user;
         if (!user) {
             showToast('Silakan login terlebih dahulu untuk memesan');
@@ -252,7 +273,7 @@ function initOrderForm() {
 
 async function checkAuthStatus() {
     const container = document.getElementById('memberAuthContainer');
-    if (!container) return;
+    if (!container || !supabase) return;
 
     try {
         const { data, error } = await supabase.auth.getUser();
@@ -315,7 +336,7 @@ async function checkAuthStatus() {
 
 async function loadOrderHistory() {
     const container = document.getElementById('orderContentContainer');
-    if (!container) return;
+    if (!container || !supabase) return;
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
         container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Silakan login di menu Member untuk melihat riwayat pesanan.</p></div>`;
