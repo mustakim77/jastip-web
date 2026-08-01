@@ -456,10 +456,15 @@ body {
     margin-top: 4px;
 }
 
-/* Responsive Breakpoints */
 @media(max-width: 768px) {
     .nav-container {
         padding: 10px 15px;
+    }
+    .nav-item {
+        padding: 8px 12px;
+        min-width: 40px;
+        min-height: 40px;
+        justify-content: center;
     }
     .nav-item span {
         display: none;
