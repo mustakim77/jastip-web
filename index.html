@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jastip web - Jasa Titip Profesional</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- NAVBAR FIXED -->
+    <header class="glass-navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-icon">🛍️</span>
+                <h1>Jastip web</h1>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="home-view">
+                    <i data-lucide="home"></i>
+                    <span>HOME</span>
+                </button>
+                <button class="nav-item" data-target="pesanan-view">
+                    <i data-lucide="clipboard-list"></i>
+                    <span>PESANAN</span>
+                </button>
+                <button class="nav-item" data-target="member-view">
+                    <i data-lucide="user"></i>
+                    <span>MEMBER</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="main-content">
+
+        <!-- HOME VIEW -->
+        <section id="home-view" class="view-section active">
+            <!-- Banner Slider -->
+            <div class="banner-slider-container">
+                <div class="banner-track" id="bannerTrack">
+                    <div class="banner-slide glass-card">
+                        <h2>Jastip Tercepat & Terpercaya</h2>
+                        <p>Pesan apapun dari merchant favoritmu diantar sampai depan pintu.</p>
+                    </div>
+                </div>
+                <div class="banner-dots" id="bannerDots"></div>
+            </div>
+
+            <!-- Search Merchant -->
+            <div class="search-section">
+                <div class="search-bar glass-card">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="searchMerchantInput" placeholder="Cari merchant atau makanan...">
+                </div>
+            </div>
+
+            <!-- Kategori -->
+            <div class="section-block">
+                <h3>Kategori Pilihan</h3>
+                <div class="category-grid" id="categoryGrid">
+                    <div class="category-item glass-card" data-category="Semua">
+                        <i data-lucide="grid"></i>
+                        <span>Semua</span>
+                    </div>
+                    <div class="category-item glass-card" data-category="Makanan">
+                        <i data-lucide="utensils"></i>
+                        <span>Makanan</span>
+                    </div>
+                    <div class="category-item glass-card" data-category="Minuman">
+                        <i data-lucide="coffee"></i>
+                        <span>Minuman</span>
+                    </div>
+                    <div class="category-item glass-card" data-category="Belanja">
+                        <i data-lucide="shopping-bag"></i>
+                        <span>Belanja</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Merchant Populer -->
+            <div class="section-block">
+                <h3>Merchant Populer</h3>
+                <div class="merchant-grid" id="popularMerchantGrid"></div>
+            </div>
+
+            <!-- Merchant Terbaru -->
+            <div class="section-block">
+                <h3>Merchant Terbaru</h3>
+                <div class="merchant-grid" id="latestMerchantGrid"></div>
+            </div>
+
+            <!-- Merchant Terdekat -->
+            <div class="section-block">
+                <h3>Merchant Terdekat</h3>
+                <div class="merchant-grid" id="nearestMerchantGrid"></div>
+            </div>
+        </section>
+
+        <!-- PESANAN VIEW -->
+        <section id="pesanan-view" class="view-section">
+            <div class="section-header">
+                <h2>Riwayat Pesanan</h2>
+                <p>Pantau status pesanan Jastip Anda secara real-time.</p>
+            </div>
+            <div id="orderContentContainer">
+                <!-- Dynamic Content based on Auth -->
+            </div>
+        </section>
+
+        <!-- MEMBER VIEW -->
+        <section id="member-view" class="view-section">
+            <div id="memberAuthContainer">
+                <!-- Auth Forms / Profile Dashboard will be rendered here -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODERN FOOTER -->
+    <footer class="glass-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Jastip web. All rights reserved.</p>
+            <p class="footer-sub">Dibuat dengan standar kualitas iOS 18</p>
+        </div>
+    </footer>
+
+    <!-- MERCHANT DETAIL MODAL -->
+    <div id="merchantModal" class="modal-backdrop">
+        <div class="modal-content glass-card">
+            <button class="modal-close" id="closeMerchantModal"><i data-lucide="x"></i></button>
+            <div id="merchantDetailBody"></div>
+        </div>
+    </div>
+
+    <!-- ORDER FORM MODAL -->
+    <div id="orderModal" class="modal-backdrop">
+        <div class="modal-content glass-card">
+            <button class="modal-close" id="closeOrderModal"><i data-lucide="x"></i></button>
+            <h2>Form Pemesanan Jastip</h2>
+            <form id="orderForm">
+                <input type="hidden" id="orderMerchantId">
+                <div class="form-group">
+                    <label>Nama Penerima</label>
+                    <input type="text" id="orderNama" required placeholder="Masukkan nama lengkap">
+                </div>
+                <div class="form-group">
+                    <label>Nomor WhatsApp</label>
+                    <input type="tel" id="orderWhatsapp" required placeholder="08xxxxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>Alamat Pengiriman Lengkap</label>
+                    <textarea id="orderAlamat" rows="3" required placeholder="Masukkan alamat tujuan"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Latitude Tujuan</label>
+                        <input type="number" step="any" id="orderLat" required placeholder="-7.8234">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude Tujuan</label>
+                        <input type="number" step="any" id="orderLng" required placeholder="111.4654">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn-secondary" id="detectLocationBtn"><i data-lucide="map-pin"></i> Gunakan Lokasi Saat Ini</button>
+                </div>
+                <div class="form-group">
+                    <label>Daftar Pesanan</label>
+                    <textarea id="orderDaftarPesanan" rows="3" required placeholder="Contoh: 2x Ayam Goreng, 1x Es Teh Manis"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Catatan Tambahan</label>
+                    <input type="text" id="orderCatatan" placeholder="Contoh: Jangan terlalu pedas">
+                </div>
+                <div class="form-group">
+                    <label>Metode Pembayaran</label>
+                    <select id="orderMetodePembayaran" required>
+                        <option value="COD">COD (Bayar di Tempat)</option>
+                        <option value="Transfer">Transfer Bank</option>
+                        <option value="QRIS">QRIS</option>
+                    </select>
+                </div>
+                <div class="order-summary glass-card">
+                    <h4>Rincian Biaya</h4>
+                    <div class="summary-item"><span>Jarak:</span> <span id="summaryJarak">0 km</span></div>
+                    <div class="summary-item"><span>Ongkir:</span> <span id="summaryOngkir">Rp 0</span></div>
+                    <div class="summary-item"><span>Biaya Admin:</span> <span id="summaryBiayaAdmin">Rp 0</span></div>
+                    <div class="summary-item total"><span>Total Pembayaran:</span> <span id="summaryTotal">Rp 0</span></div>
+                </div>
+                <button type="submit" class="btn-primary ripple-btn">Kirim Pesanan Sekarang</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="toast-notification"></div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

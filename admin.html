@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Jastip web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="admin-layout">
+        <!-- macOS Style Sidebar -->
+        <aside class="admin-sidebar glass-card">
+            <div class="sidebar-brand">
+                <span class="brand-icon">🛡️</span>
+                <h2>Admin Jastip web</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="sidebar-link active" data-target="dashboard-section"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
+                <li><a href="#" class="sidebar-link" data-target="merchant-section"><i data-lucide="store"></i> Merchant</a></li>
+                <li><a href="#" class="sidebar-link" data-target="pesanan-section"><i data-lucide="shopping-cart"></i> Pesanan</a></li>
+                <li><a href="#" class="sidebar-link" data-target="banner-section"><i data-lucide="image"></i> Banner</a></li>
+                <li><a href="#" class="sidebar-link" data-target="pengaturan-section"><i data-lucide="settings"></i> Pengaturan</a></li>
+                <li><a href="#" id="adminLogoutBtn" class="sidebar-link logout"><i data-lucide="log-out"></i> Logout</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Panel -->
+        <main class="admin-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="admin-section active">
+                <h2>Dashboard Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card glass-card">
+                        <i data-lucide="store"></i>
+                        <div>
+                            <h4 id="statTotalMerchant">0</h4>
+                            <p>Total Merchant</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <i data-lucide="shopping-bag"></i>
+                        <div>
+                            <h4 id="statTotalOrder">0</h4>
+                            <p>Total Pesanan</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <i data-lucide="check-circle"></i>
+                        <div>
+                            <h4 id="statCompletedOrder">0</h4>
+                            <p>Pesanan Selesai</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <i data-lucide="wallet"></i>
+                        <div>
+                            <h4 id="statTotalPendapatan">Rp 0</h4>
+                            <p>Estimasi Pendapatan</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Merchant Section (CRUD) -->
+            <section id="merchant-section" class="admin-section">
+                <div class="section-header-flex">
+                    <h2>Manajemen Merchant</h2>
+                    <button class="btn-primary" id="openAddMerchantModalBtn"><i data-lucide="plus"></i> Tambah Merchant</button>
+                </div>
+                <div class="table-responsive glass-card">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Nama</th>
+                                <th>Kategori</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="merchantTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Pesanan Section -->
+            <section id="pesanan-section" class="admin-section">
+                <h2>Manajemen Pesanan</h2>
+                <div class="filter-bar glass-card">
+                    <select id="filterStatus">
+                        <option value="">Semua Status</option>
+                        <option value="Menunggu">Menunggu</option>
+                        <option value="Diproses">Diproses</option>
+                        <option value="Sedang Dibelikan">Sedang Dibelikan</option>
+                        <option value="Menuju Pelanggan">Menuju Pelanggan</option>
+                        <option value="Selesai">Selesai</option>
+                        <option value="Dibatalkan">Dibatalkan</option>
+                    </select>
+                </div>
+                <div class="table-responsive glass-card">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Pemesan</th>
+                                <th>Merchant</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminOrderTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Banner Section -->
+            <section id="banner-section" class="admin-section">
+                <h2>Manajemen Banner</h2>
+                <div class="glass-card form-card">
+                    <p>Upload atau kelola banner promosi aplikasi.</p>
+                    <input type="file" id="bannerFileInput" accept="image/*">
+                    <button class="btn-primary" id="uploadBannerBtn">Upload Banner</button>
+                </div>
+            </section>
+
+            <!-- Pengaturan Section -->
+            <section id="pengaturan-section" class="admin-section">
+                <h2>Pengaturan Sistem</h2>
+                <form id="settingsForm" class="glass-card form-card">
+                    <div class="form-group">
+                        <label>Nomor WhatsApp Admin</label>
+                        <input type="text" id="settingAdminWhatsapp" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tarif Per KM (Rp)</label>
+                        <input type="number" id="settingTarifPerKm" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Biaya Admin (Rp)</label>
+                        <input type="number" id="settingBiayaAdmin" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Radius Maksimal (KM)</label>
+                        <input type="number" id="settingRadiusMaksimal" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Website</label>
+                        <input type="text" id="settingNamaWebsite" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Simpan Pengaturan</button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <!-- MERCHANT FORM MODAL (ADMIN) -->
+    <div id="adminMerchantModal" class="modal-backdrop">
+        <div class="modal-content glass-card">
+            <button class="modal-close" id="closeAdminMerchantModal"><i data-lucide="x"></i></button>
+            <h2 id="merchantModalTitle">Tambah Merchant</h2>
+            <form id="adminMerchantForm">
+                <input type="hidden" id="editMerchantId">
+                <div class="form-group">
+                    <label>Nama Merchant</label>
+                    <input type="text" id="merchantNama" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select id="merchantKategori" required>
+                        <option value="Makanan">Makanan</option>
+                        <option value="Minuman">Minuman</option>
+                        <option value="Belanja">Belanja</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Foto Merchant</label>
+                    <input type="file" id="merchantFotoFile" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>Alamat</label>
+                    <textarea id="merchantAlamat" rows="2" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" step="any" id="merchantLatitude" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" step="any" id="merchantLongitude" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Jam Buka</label>
+                        <input type="time" id="merchantJamBuka" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Jam Tutup</label>
+                        <input type="time" id="merchantJamTutup" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="merchantStatus" required>
+                        <option value="Buka">Buka</option>
+                        <option value="Tutup">Tutup</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Simpan Merchant</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="adminToast" class="toast-notification"></div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
