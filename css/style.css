@@ -382,6 +382,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
     align-items: center;
     padding-bottom: var(--safe-area-bottom);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 100; /* Tambahkan baris ini */
 }
 .nav-item {
     display: flex;
