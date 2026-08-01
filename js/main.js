@@ -1,31 +1,34 @@
 /**
  * JASTIP WEB - MAIN JS
- * Requirement: ES6, Supabase, Vanilla JS
+ * Terintegrasi dengan Supabase Asli
  */
 
-// Konfigurasi Supabase (Harus diganti dengan Credentials Project Anda)
+// Konfigurasi Supabase
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4cXBicHpzdWZnbmptaW1iYWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MjU1MTgsImV4cCI6MjEwMTEwMTUxOH0.kUqq8XLCJ6IZHNGVedk_mFZQlDVlCJ1-TheYq4v2988';
 
-// Inisialisasi SDK (Hanya diaktifkan jika kredensial sudah dimasukkan)
-// const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Inisialisasi SDK Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const app = {
     state: {
         currentMerchant: null,
         userLocation: null,
-        cart: [],
-        shippingRatePerKm: 2500, // Tarif per km
-        adminFee: 2000,
-        adminWA: '6281234567890', // Default admin WA
+        merchants: [],
+        shippingRatePerKm: 2500, // Default, idealnya diambil dari tabel settings
+        adminFee: 2000,          // Default, idealnya diambil dari tabel settings
+        adminWA: '6281234567890',// Default, idealnya diambil dari tabel settings
         isAuth: false
     },
 
-    init() {
+    async init() {
         lucide.createIcons();
         this.setupNavigation();
-        this.loadMockMerchants();
         this.setupFormListeners();
+        
+        // Ambil data pengaturan & merchant dari Supabase
+        await this.loadSettings();
+        await this.loadMerchants();
     },
 
     // --- NAVIGATION ---
@@ -41,46 +44,72 @@ const app = {
     },
 
     navigate(viewId) {
-        // Update Views
         document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
         document.getElementById(`view-${viewId}`).classList.add('active');
 
-        // Update Bottom Nav Styling (jika dari bottom nav)
         if (['home', 'pesanan', 'member'].includes(viewId)) {
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
             document.querySelector(`.nav-item[data-target="${viewId}"]`).classList.add('active');
         }
 
-        // Header Title
         const titles = { 'home': 'Jastip Web', 'pesanan': 'Pesanan Saya', 'member': 'Member Area' };
         if (titles[viewId]) document.getElementById('header-title').innerText = titles[viewId];
         
         window.scrollTo(0,0);
     },
 
-    // --- MOCK DATA FOR PHASE 1 ---
-    loadMockMerchants() {
-        const merchants = [
-            { id: 1, name: 'Sate Ayam Ponorogo', category: 'Makanan', rating: 4.8, open: '10:00 - 22:00', img: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400', lat: -7.868, lng: 111.464, desc: 'Sate ayam khas asli Ponorogo.' },
-            { id: 2, name: 'Boba Time', category: 'Minuman', rating: 4.5, open: '09:00 - 21:00', img: 'https://images.unsplash.com/photo-1558857563-b37102e9976c?w=400', lat: -7.870, lng: 111.465, desc: 'Minuman boba segar aneka rasa.' }
-        ];
+    // --- SUPABASE DATA FETCHING ---
+    async loadSettings() {
+        try {
+            const { data, error } = await supabase.from('settings').select('*').limit(1).single();
+            if (data) {
+                this.state.shippingRatePerKm = data.ongkir || 2500;
+                this.state.adminFee = data.adminFee || 2000;
+                this.state.adminWA = data.wa || '6281234567890';
+            }
+        } catch (err) {
+            console.log("Menggunakan pengaturan default (Tabel settings belum ada/kosong).");
+        }
+    },
 
-        const container = document.getElementById('merchant-list');
-        container.innerHTML = merchants.map(m => `
-            <div class="merchant-card" onclick="app.openMerchant(${m.id})">
-                <img src="${m.img}" alt="${m.name}" class="merchant-img">
-                <div class="merchant-content">
-                    <h3>${m.name}</h3>
-                    <div class="text-sm text-muted mb-2">${m.category}</div>
-                    <div class="info-badges">
-                        <span class="badge"><i data-lucide="star"></i> ${m.rating}</span>
-                        <span class="badge"><i data-lucide="clock"></i> ${m.open.split(' - ')[0]}</span>
+    async loadMerchants() {
+        try {
+            // Ambil banner slider
+            const { data: banners } = await supabase.from('banners').select('*');
+            if(banners && banners.length > 0) {
+                const bannerContainer = document.querySelector('.banner-slider');
+                bannerContainer.innerHTML = banners.map(b => `<img src="${b.url}" alt="Banner" class="banner" style="width:100%; border-radius:12px; height:150px; object-fit:cover;">`).join('');
+            }
+
+            // Ambil Merchant yang Aktif
+            const { data: merchants, error } = await supabase.from('merchants').select('*').eq('status', 'Aktif');
+            
+            if (error) throw error;
+            this.state.merchants = merchants || [];
+            
+            const container = document.getElementById('merchant-list');
+            if(this.state.merchants.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted mt-3">Belum ada merchant tersedia.</p>';
+                return;
+            }
+
+            container.innerHTML = this.state.merchants.map(m => `
+                <div class="merchant-card" onclick="app.openMerchant(${m.id})">
+                    <img src="${m.img}" alt="${m.name}" class="merchant-img">
+                    <div class="merchant-content">
+                        <h3>${m.name}</h3>
+                        <div class="text-sm text-muted mb-2">${m.category}</div>
+                        <div class="info-badges">
+                            <span class="badge"><i data-lucide="clock"></i> ${m.hours ? m.hours.split(' - ')[0] : 'Buka'}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
-        lucide.createIcons();
-        this.state.merchants = merchants;
+            `).join('');
+            lucide.createIcons();
+        } catch (error) {
+            this.showToast('Gagal memuat daftar merchant.');
+            console.error(error);
+        }
     },
 
     openMerchant(id) {
@@ -89,8 +118,8 @@ const app = {
         
         document.getElementById('detail-image').src = m.img;
         document.getElementById('detail-name').innerText = m.name;
-        document.getElementById('detail-desc').innerText = m.desc;
-        document.getElementById('detail-hours').innerText = m.open;
+        document.getElementById('detail-desc').innerText = m.desc || 'Tersedia di Jastip Web';
+        document.getElementById('detail-hours').innerText = m.hours || '-';
 
         this.navigate('merchant');
         this.calculateInvoice();
@@ -153,19 +182,20 @@ const app = {
     },
 
     calculateInvoice() {
-        // Parse items
         const rows = document.querySelectorAll('.order-item-row');
-        let subtotalUntung = 0; // Kolom untung per instruksi spesifik (Total = Untung di form)
+        let subtotalUntung = 0; 
         let itemsHtml = '';
+        let validItemCount = 0;
 
         rows.forEach(row => {
             const name = row.querySelector('.item-name').value || '-';
             const price = parseFloat(row.querySelector('.item-price').value) || 0;
             const qty = parseInt(row.querySelector('.item-qty').value) || 0;
             const untung = price * qty;
-            subtotalUntung += untung;
-
+            
             if (name !== '-' || price > 0) {
+                subtotalUntung += untung;
+                validItemCount++;
                 // Layout kolom: Item | Harga | Qty | Untung
                 itemsHtml += `
                     <div class="row-data">
@@ -180,7 +210,6 @@ const app = {
 
         document.getElementById('invoice-items').innerHTML = itemsHtml;
 
-        // Calculate Distance
         let distance = 0;
         let shipping = 0;
         if (this.state.userLocation && this.state.currentMerchant) {
@@ -194,61 +223,92 @@ const app = {
         document.getElementById('summary-distance').innerText = `${distance.toFixed(1)} km`;
         document.getElementById('detail-distance').innerText = `${distance.toFixed(1)} km`;
         document.getElementById('summary-shipping').innerText = `Rp ${shipping.toLocaleString('id-ID')}`;
+        document.querySelector('.summary-row:nth-last-child(3) span:last-child').innerText = `Rp ${this.state.adminFee.toLocaleString('id-ID')}`;
 
-        const grandTotal = subtotalUntung + shipping + this.state.adminFee;
-        document.getElementById('summary-total').innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
+        // Simpan grand total di state untuk digunakan saat submit
+        this.state.currentGrandTotal = subtotalUntung + shipping + this.state.adminFee;
+        document.getElementById('summary-total').innerText = `Rp ${this.state.currentGrandTotal.toLocaleString('id-ID')}`;
     },
 
-    // --- CHECKOUT & WHATSAPP ---
-    processOrder() {
+    // --- CHECKOUT & DATABASE INSERT ---
+    async processOrder() {
         if (!this.state.userLocation) {
             this.showToast("Harap ambil titik lokasi Anda terlebih dahulu.");
             return;
         }
 
-        // Kumpulkan data
-        const name = document.getElementById('order-name').value;
-        const wa = document.getElementById('order-wa').value;
-        const address = document.getElementById('order-address').value;
-        const notes = document.getElementById('order-notes').value;
-        const payment = document.querySelector('input[name="payment"]:checked').value;
-        const total = document.getElementById('summary-total').innerText;
+        const btnSubmit = document.querySelector('button[type="submit"]');
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Memproses...";
 
-        // Kumpulkan item
-        const rows = document.querySelectorAll('.order-item-row');
-        let orderList = '';
-        rows.forEach(row => {
-            const n = row.querySelector('.item-name').value;
-            const p = row.querySelector('.item-price').value;
-            const q = row.querySelector('.item-qty').value;
-            if(n && p && q) {
-                orderList += `- ${n} | Rp${p} | Qty:${q} | Untung: Rp${p*q}%0A`;
-            }
-        });
+        try {
+            const name = document.getElementById('order-name').value;
+            const wa = document.getElementById('order-wa').value;
+            const address = document.getElementById('order-address').value;
+            const notes = document.getElementById('order-notes').value;
+            const payment = document.querySelector('input[name="payment"]:checked').value;
+            
+            // Format ID Pesanan (Contoh: ORD-169123456)
+            const orderId = 'ORD-' + Math.floor(Math.random() * 900000 + 100000);
+            const dateStr = new Date().toISOString().split('T')[0];
 
-        const textWa = `*ORDER BARU - JASTIP WEB*%0A%0A` +
-            `*Merchant:* ${this.state.currentMerchant.name}%0A` +
-            `*Pemesan:* ${name}%0A` +
-            `*WA:* ${wa}%0A` +
-            `*Alamat:* ${address}%0A` +
-            `*Link Map:* https://www.google.com/maps?q=${this.state.userLocation.lat},${this.state.userLocation.lng}%0A%0A` +
-            `*Pesanan:*%0A${orderList}%0A` +
-            `*Catatan:* ${notes || '-'}%0A` +
-            `*Pembayaran:* ${payment}%0A` +
-            `*Total Tagihan:* ${total}%0A%0A` +
-            `_Mohon segera diproses._`;
+            // 1. Simpan ke database Supabase
+            const orderPayload = {
+                id: orderId,
+                date: dateStr,
+                customer: name,
+                merchant: this.state.currentMerchant.name,
+                total: this.state.currentGrandTotal,
+                status: 'Menunggu'
+            };
 
-        // Simulasi Supabase insert di sini sebelum WA
-        // await supabase.from('orders').insert([...])
+            const { error } = await supabase.from('orders').insert([orderPayload]);
+            if(error) throw error;
 
-        this.showToast("Pesanan dibuat! Membuka WhatsApp...");
-        setTimeout(() => {
-            window.open(`https://wa.me/${this.state.adminWA}?text=${textWa}`, '_blank');
-            this.navigate('home');
-        }, 1500);
+            // 2. Format pesan WhatsApp
+            const rows = document.querySelectorAll('.order-item-row');
+            let orderList = '';
+            rows.forEach(row => {
+                const n = row.querySelector('.item-name').value;
+                const p = row.querySelector('.item-price').value;
+                const q = row.querySelector('.item-qty').value;
+                if(n && p && q) {
+                    orderList += `- ${n} | Rp${p} | Qty:${q} | Untung: Rp${p*q}%0A`;
+                }
+            });
+
+            const textWa = `*ORDER BARU - JASTIP WEB*%0A%0A` +
+                `*ID Pesanan:* ${orderId}%0A` +
+                `*Merchant:* ${this.state.currentMerchant.name}%0A` +
+                `*Pemesan:* ${name}%0A` +
+                `*WA:* ${wa}%0A` +
+                `*Alamat:* ${address}%0A` +
+                `*Link Map:* https://www.google.com/maps?q=${this.state.userLocation.lat},${this.state.userLocation.lng}%0A%0A` +
+                `*Pesanan:*%0A${orderList}%0A` +
+                `*Catatan:* ${notes || '-'}%0A` +
+                `*Pembayaran:* ${payment}%0A` +
+                `*Total Tagihan:* Rp ${this.state.currentGrandTotal.toLocaleString('id-ID')}%0A%0A` +
+                `_Mohon segera diproses._`;
+
+            this.showToast("Pesanan berhasil dibuat! Membuka WhatsApp...");
+            
+            // Reset form dan navigasi
+            setTimeout(() => {
+                document.getElementById('order-form').reset();
+                this.navigate('home');
+                window.open(`https://wa.me/${this.state.adminWA}?text=${textWa}`, '_blank');
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = "Buat Pesanan";
+            }, 1500);
+
+        } catch(error) {
+            this.showToast("Gagal membuat pesanan.");
+            console.error(error);
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Buat Pesanan";
+        }
     },
 
-    // --- UTILS ---
     showToast(msg) {
         const toast = document.getElementById('toast');
         toast.innerText = msg;
@@ -257,7 +317,7 @@ const app = {
     },
 
     toggleAuthMode() {
-        this.showToast("Fitur otentikasi akan disambungkan pada panel Supabase penuh.");
+        this.showToast("Fitur otentikasi menunggu setup Auth Supabase.");
     },
 
     logout() {
@@ -268,5 +328,4 @@ const app = {
     }
 };
 
-// Start App
 document.addEventListener('DOMContentLoaded', () => app.init());
