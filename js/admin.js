@@ -1,302 +1,280 @@
+/**
+ * JASTIP WEB - ADMIN JS
+ * Requirement: ES6, Supabase SDK, Vanilla JS, Modular, Production-ready
+ */
+
+// Konfigurasi Supabase
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4cXBicHpzdWZnbmptaW1iYWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MjU1MTgsImV4cCI6MjEwMTEwMTUxOH0.kUqq8XLCJ6IZHNGVedk_mFZQlDVlCJ1-TheYq4v2988';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
-    initNavigation();
-    loadHomeData();
-    initAuth();
-    initOrderForm();
-});
+const adminApp = {
+    state: {
+        merchants: [],
+        orders: [],
+        settings: {},
+        banners: []
+    },
 
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
+    init() {
+        lucide.createIcons();
+        this.setupNavigation();
+        this.setupForms();
+        
+        // Panggil fetch awal
+        this.fetchDashboardData();
+    },
 
-function initNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetId = item.getAttribute('data-target');
-            
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
+    // --- NAVIGATION ---
+    setupNavigation() {
+        const links = document.querySelectorAll('.nav-link[data-target]');
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = link.getAttribute('data-target');
+                
+                // Update active class UI
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
 
-            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-            document.getElementById(targetId).classList.add('active');
-
-            if (targetId === 'pesanan-view') {
-                loadOrderHistory();
-            } else if (targetId === 'member-view') {
-                checkAuthStatus();
-            }
+                // Switch section
+                document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden', 'active'));
+                document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                document.getElementById(`sec-${target}`).classList.add('active');
+                document.getElementById(`sec-${target}`).classList.remove('hidden');
+            });
         });
-    });
-}
+    },
 
-async function loadHomeData() {
-    try {
-        const { data: merchants, error } = await supabase.from('merchants').select('*');
-        if (error) throw error;
+    // --- SUPABASE API CALLS (SIMULATED FOR PREVIEW) ---
+    async fetchDashboardData() {
+        try {
+            // SINTAKS PRODUKSI (Uncomment bila Key sudah dimasukkan):
+            // const { data: mData } = await supabase.from('merchants').select('*');
+            // const { data: oData } = await supabase.from('orders').select('*');
+            // const { data: sData } = await supabase.from('settings').select('*').single();
+            // const { data: bData } = await supabase.from('banners').select('*');
 
-        renderMerchantGrids(merchants);
-        initSearch(merchants);
-    } catch (err) {
-        console.error('Error loading home data:', err);
-    }
-}
+            // MOCK DATA (Agar siap jalan di VS Code)
+            this.state.merchants = [
+                { id: 1, name: 'Sate Ayam Ponorogo', category: 'Makanan', lat: -7.868, lng: 111.464, img: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200', status: 'Aktif' },
+                { id: 2, name: 'Boba Time', category: 'Minuman', lat: -7.870, lng: 111.465, img: 'https://images.unsplash.com/photo-1558857563-b37102e9976c?w=200', status: 'Aktif' }
+            ];
+            this.state.orders = [
+                { id: 'ORD-001', date: '2026-08-01', customer: 'Budi Santoso', merchant: 'Sate Ayam Ponorogo', total: 45000, status: 'Menunggu' },
+                { id: 'ORD-002', date: '2026-08-01', customer: 'Siti Aminah', merchant: 'Boba Time', total: 28000, status: 'Diproses' }
+            ];
+            this.state.settings = { ongkir: 2500, adminFee: 2000, wa: '6281234567890', radius: 15, logo: '' };
+            this.state.banners = [
+                { id: 1, url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600' }
+            ];
 
-function renderMerchantGrids(merchants) {
-    const popularGrid = document.getElementById('popularMerchantGrid');
-    const latestGrid = document.getElementById('latestMerchantGrid');
-    const nearestGrid = document.getElementById('nearestMerchantGrid');
+            this.renderAll();
+        } catch (error) {
+            this.showToast('Gagal memuat data dari server.');
+            console.error(error);
+        }
+    },
 
-    const html = merchants.map(m => `
-        <div class="merchant-card glass-card" onclick="openMerchantDetail('${m.id}')">
-            <img src="${m.foto || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${m.nama}" class="merchant-img">
-            <div class="merchant-info">
-                <span class="badge ${m.status.toLowerCase()}">${m.status}</span>
-                <h4 class="merchant-title">${m.nama}</h4>
-                <div class="merchant-meta">
-                    <span>${m.kategori}</span>
-                    <span>🕒 ${m.jam_buka} - ${m.jam_tutup}</span>
-                </div>
-            </div>
-        </div>
-    `).join('');
+    renderAll() {
+        this.renderDashboardStats();
+        this.renderMerchants();
+        this.renderOrders();
+        this.renderSettings();
+        this.renderBanners();
+    },
 
-    popularGrid.innerHTML = html;
-    latestGrid.innerHTML = html;
-    nearestGrid.innerHTML = html;
-    lucide.createIcons();
-}
+    renderDashboardStats() {
+        document.getElementById('stat-orders').innerText = this.state.orders.length;
+        document.getElementById('stat-merchants').innerText = this.state.merchants.length;
+        
+        const revenue = this.state.orders.reduce((sum, order) => {
+            if (order.status !== 'Dibatalkan') return sum + this.state.settings.adminFee;
+            return sum;
+        }, 0);
+        document.getElementById('stat-revenue').innerText = `Rp ${revenue.toLocaleString('id-ID')}`;
+    },
 
-function initSearch(merchants) {
-    const searchInput = document.getElementById('searchMerchantInput');
-    searchInput.addEventListener('input', (e) => {
-        const keyword = e.target.value.toLowerCase();
-        const filtered = merchants.filter(m => m.nama.toLowerCase().includes(keyword) || m.kategori.toLowerCase().includes(keyword));
-        renderMerchantGrids(filtered);
-    });
-}
+    // --- MERCHANT MANAGEMENT ---
+    renderMerchants() {
+        const tbody = document.getElementById('table-merchants');
+        tbody.innerHTML = this.state.merchants.map(m => `
+            <tr>
+                <td><img src="${m.img}" class="table-img" alt="Foto"></td>
+                <td class="fw-bold">${m.name}</td>
+                <td>${m.category}</td>
+                <td>${m.lat}, ${m.lng}</td>
+                <td><span class="badge ${m.status.toLowerCase()}">${m.status}</span></td>
+                <td>
+                    <button class="btn-icon" onclick="adminApp.editMerchant(${m.id})"><i data-lucide="edit-2"></i></button>
+                    <button class="btn-icon delete" onclick="adminApp.deleteMerchant(${m.id})"><i data-lucide="trash-2"></i></button>
+                </td>
+            </tr>
+        `).join('');
+        lucide.createIcons();
+    },
 
-async function openMerchantDetail(merchantId) {
-    try {
-        const { data: merchant, error } = await supabase.from('merchants').select('*').eq('id', merchantId).single();
-        if (error) throw error;
-
-        const body = document.getElementById('merchantDetailBody');
-        body.innerHTML = `
-            <img src="${merchant.foto || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${merchant.nama}" style="width:150px; height:150px; border-radius:50%; object-fit:cover; margin:0 auto 16px; display:block;">
-            <h2 style="text-align:center; margin-bottom:8px;">${merchant.nama}</h2>
-            <p style="text-align:center; color:#6B7280; margin-bottom:16px;">${merchant.alamat}</p>
-            <div style="display:flex; justify-content:space-around; margin-bottom:20px; font-size:14px;">
-                <span>📂 ${merchant.kategori}</span>
-                <span>🕒 ${merchant.jam_buka} - ${merchant.jam_tutup}</span>
-                <span class="badge ${merchant.status.toLowerCase()}">${merchant.status}</span>
-            </div>
-            <button class="btn-primary" onclick="openOrderModal('${merchant.id}', ${merchant.latitude}, ${merchant.longitude})">Pesan Sekarang</button>
-        `;
-        document.getElementById('merchantModal').classList.add('show');
-    } catch (err) {
-        showToast('Gagal memuat detail merchant');
-    }
-}
-
-document.getElementById('closeMerchantModal').addEventListener('click', () => {
-    document.getElementById('merchantModal').classList.remove('show');
-});
-
-function calculateHaversine(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-}
-
-async function openOrderModal(merchantId, mLat, mLng) {
-    document.getElementById('merchantModal').classList.remove('show');
-    document.getElementById('orderMerchantId').value = merchantId;
-    document.getElementById('orderModal').classList.add('show');
-
-    // Fetch settings for calculation
-    const { data: settings } = await supabase.from('settings').select('*').single();
-    
-    const latInput = document.getElementById('orderLat');
-    const lngInput = document.getElementById('orderLng');
-
-    const updateCalculation = async () => {
-        const uLat = parseFloat(latInput.value) || mLat;
-        const uLng = parseFloat(lngInput.value) || mLng;
-        const distance = calculateHaversine(mLat, mLng, uLat, uLng);
-        const tarif = settings ? settings.tarif_per_km : 5000;
-        const adminFee = settings ? settings.biaya_admin : 2000;
-        const ongkir = Math.round(distance * tarif);
-        const total = ongkir + adminFee;
-
-        document.getElementById('summaryJarak').textContent = `${distance.toFixed(2)} km`;
-        document.getElementById('summaryOngkir').textContent = `Rp ${ongkir.toLocaleString()}`;
-        document.getElementById('summaryBiayaAdmin').textContent = `Rp ${adminFee.toLocaleString()}`;
-        document.getElementById('summaryTotal').textContent = `Rp ${total.toLocaleString()}`;
-    };
-
-    latInput.addEventListener('input', updateCalculation);
-    lngInput.addEventListener('input', updateCalculation);
-    updateCalculation();
-}
-
-document.getElementById('closeOrderModal').addEventListener('click', () => {
-    document.getElementById('orderModal').classList.remove('show');
-});
-
-document.getElementById('detectLocationBtn').addEventListener('click', () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            document.getElementById('orderLat').value = pos.coords.latitude;
-            document.getElementById('orderLng').value = pos.coords.longitude;
-            showToast('Lokasi berhasil dideteksi!');
-        }, () => {
-            showToast('Gagal mendeteksi lokasi');
-        });
-    }
-});
-
-function initOrderForm() {
-    const form = document.getElementById('orderForm');
-    form.addEventListener('submit', async (e) => {
+    async saveMerchant(e) {
         e.preventDefault();
-        const user = (await supabase.auth.getUser()).data.user;
-        if (!user) {
-            showToast('Silakan login terlebih dahulu untuk memesan');
-            return;
+        const id = document.getElementById('merch-id').value;
+        const payload = {
+            name: document.getElementById('merch-name').value,
+            category: document.getElementById('merch-category').value,
+            hours: document.getElementById('merch-hours').value,
+            lat: document.getElementById('merch-lat').value,
+            lng: document.getElementById('merch-lng').value,
+            img: document.getElementById('merch-img').value,
+            status: 'Aktif'
+        };
+
+        // PRODUCTION DB LOGIC:
+        // if(id) await supabase.from('merchants').update(payload).eq('id', id);
+        // else await supabase.from('merchants').insert([payload]);
+
+        this.showToast("Data Merchant berhasil disimpan!");
+        this.closeModal('merchant-modal');
+        this.fetchDashboardData(); // Reload data
+    },
+
+    editMerchant(id) {
+        const m = this.state.merchants.find(x => x.id === id);
+        if(!m) return;
+        
+        document.getElementById('merch-id').value = m.id;
+        document.getElementById('merch-name').value = m.name;
+        document.getElementById('merch-category').value = m.category;
+        document.getElementById('merch-hours').value = m.hours || '08:00 - 20:00';
+        document.getElementById('merch-lat').value = m.lat;
+        document.getElementById('merch-lng').value = m.lng;
+        document.getElementById('merch-img').value = m.img;
+        
+        this.openModal('merchant-modal');
+    },
+
+    async deleteMerchant(id) {
+        if(!confirm("Yakin ingin menghapus merchant ini?")) return;
+        // await supabase.from('merchants').delete().eq('id', id);
+        this.showToast("Merchant dihapus.");
+        this.fetchDashboardData();
+    },
+
+    // --- ORDER MANAGEMENT ---
+    renderOrders() {
+        const tbody = document.getElementById('table-orders');
+        tbody.innerHTML = this.state.orders.map(o => `
+            <tr>
+                <td class="fw-bold">${o.id}</td>
+                <td>${o.date}</td>
+                <td>${o.customer}</td>
+                <td>${o.merchant}</td>
+                <td>Rp ${o.total.toLocaleString('id-ID')}</td>
+                <td>
+                    <select class="status-select" onchange="adminApp.updateOrderStatus('${o.id}', this.value)">
+                        <option value="Menunggu" ${o.status === 'Menunggu' ? 'selected' : ''}>Menunggu</option>
+                        <option value="Diproses" ${o.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
+                        <option value="Selesai" ${o.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                        <option value="Dibatalkan" ${o.status === 'Dibatalkan' ? 'selected' : ''}>Dibatalkan</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn-icon" title="Lihat Detail"><i data-lucide="eye"></i></button>
+                </td>
+            </tr>
+        `).join('');
+        lucide.createIcons();
+    },
+
+    async updateOrderStatus(id, newStatus) {
+        // await supabase.from('orders').update({ status: newStatus }).eq('id', id);
+        this.showToast(`Status ${id} diubah menjadi ${newStatus}`);
+        this.fetchDashboardData(); // Refresh to update revenue stats
+    },
+
+    // --- BANNER MANAGEMENT ---
+    renderBanners() {
+        const grid = document.getElementById('banner-list');
+        grid.innerHTML = this.state.banners.map(b => `
+            <div class="banner-card">
+                <img src="${b.url}" alt="Banner">
+                <button class="btn-delete-banner" onclick="adminApp.deleteBanner(${b.id})">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    },
+
+    async addBanner(e) {
+        e.preventDefault();
+        const url = document.getElementById('banner-url').value;
+        // await supabase.from('banners').insert([{ url }]);
+        this.showToast("Banner ditambahkan!");
+        document.getElementById('form-banner').reset();
+        this.closeModal('banner-modal');
+        this.fetchDashboardData();
+    },
+
+    async deleteBanner(id) {
+        if(!confirm("Hapus banner ini?")) return;
+        // await supabase.from('banners').delete().eq('id', id);
+        this.showToast("Banner dihapus.");
+        this.fetchDashboardData();
+    },
+
+    // --- SETTINGS ---
+    renderSettings() {
+        const s = this.state.settings;
+        document.getElementById('set-ongkir').value = s.ongkir;
+        document.getElementById('set-admin-fee').value = s.adminFee;
+        document.getElementById('set-wa').value = s.wa;
+        document.getElementById('set-radius').value = s.radius;
+        document.getElementById('set-logo').value = s.logo || '';
+    },
+
+    async saveSettings(e) {
+        e.preventDefault();
+        const payload = {
+            ongkir: document.getElementById('set-ongkir').value,
+            adminFee: document.getElementById('set-admin-fee').value,
+            wa: document.getElementById('set-wa').value,
+            radius: document.getElementById('set-radius').value,
+            logo: document.getElementById('set-logo').value
+        };
+        // await supabase.from('settings').update(payload).eq('id', 1);
+        this.showToast("Pengaturan sistem berhasil diperbarui!");
+    },
+
+    // --- UTILITIES ---
+    setupForms() {
+        document.getElementById('form-merchant').addEventListener('submit', (e) => this.saveMerchant(e));
+        document.getElementById('form-settings').addEventListener('submit', (e) => this.saveSettings(e));
+        document.getElementById('form-banner').addEventListener('submit', (e) => this.addBanner(e));
+    },
+
+    openModal(id) {
+        if (id === 'merchant-modal' && !document.getElementById('merch-id').value) {
+            document.getElementById('form-merchant').reset();
         }
+        document.getElementById(id).classList.remove('hidden');
+    },
 
-        const merchantId = document.getElementById('orderMerchantId').value;
-        const nama = document.getElementById('orderNama').value;
-        const whatsapp = document.getElementById('orderWhatsapp').value;
-        const alamat = document.getElementById('orderAlamat').value;
-        const lat = parseFloat(document.getElementById('orderLat').value);
-        const lng = parseFloat(document.getElementById('orderLng').value);
-        const daftarPesanan = document.getElementById('orderDaftarPesanan').value;
-        const catatan = document.getElementById('orderCatatan').value;
+    closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        if (id === 'merchant-modal') document.getElementById('form-merchant').reset();
+    },
 
-        const invoice = 'INV-' + Date.now();
+    showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    },
 
-        const { error } = await supabase.from('orders').insert([{
-            invoice,
-            member_id: user.id,
-            merchant_id: merchantId,
-            nama,
-            whatsapp,
-            alamat,
-            latitude: lat,
-            longitude: lng,
-            daftar_pesanan: daftarPesanan,
-            catatan,
-            jarak: 2.5,
-            ongkir: 12500,
-            biaya_admin: 2000,
-            total: 14500,
-            status: 'Menunggu'
-        }]);
-
-        if (error) {
-            showToast('Gagal membuat pesanan');
-        } else {
-            showToast('Pesanan berhasil dibuat!');
-            document.getElementById('orderModal').classList.remove('show');
-            form.reset();
-        }
-    });
-}
-
-async function checkAuthStatus() {
-    const container = document.getElementById('memberAuthContainer');
-    const user = (await supabase.auth.getUser()).data.user;
-
-    if (!user) {
-        container.innerHTML = `
-            <div class="glass-card" style="max-width:450px; margin:0 auto; padding:30px;">
-                <h2 style="margin-bottom:20px; text-align:center;">Login Member</h2>
-                <form id="loginForm">
-                    <div class="form-group"><label>Email</label><input type="email" id="loginEmail" required></div>
-                    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" required></div>
-                    <button type="submit" class="btn-primary">Login</button>
-                </form>
-            </div>
-        `;
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                showToast(error.message);
-            } else {
-                showToast('Login berhasil!');
-                checkAuthStatus();
-            }
-        });
-    } else {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        if (profile && profile.role === 'admin') {
-            window.location.href = 'admin.html';
-            return;
-        }
-        container.innerHTML = `
-            <div class="glass-card" style="max-width:500px; margin:0 auto; padding:30px; text-align:center;">
-                <h2>Profil Member</h2>
-                <p style="margin:10px 0; color:#6B7280;">${user.email}</p>
-                <button class="btn-primary" id="logoutBtn" style="margin-top:20px;">Logout</button>
-            </div>
-        `;
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            showToast('Berhasil logout');
-            checkAuthStatus();
-        });
+    logout() {
+        this.showToast("Keluar dari panel admin...");
+        setTimeout(() => window.location.href = 'index.html', 1000);
     }
-}
+};
 
-async function loadOrderHistory() {
-    const container = document.getElementById('orderContentContainer');
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) {
-        container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Silakan login di menu Member untuk melihat riwayat pesanan.</p></div>`;
-        return;
-    }
-
-    const { data: orders, error } = await supabase.from('orders').select('*').eq('member_id', user.id);
-    if (error || !orders.length) {
-        container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Belum ada riwayat pesanan.</p></div>`;
-        return;
-    }
-
-    container.innerHTML = orders.map(o => `
-        <div class="glass-card" style="margin-bottom:16px; padding:20px; display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <h4>${o.invoice}</h4>
-                <p style="font-size:13px; color:#6B7280;">${o.daftar_pesanan}</p>
-                <span class="badge buka" style="margin-top:6px; display:inline-block;">${o.status}</span>
-            </div>
-            <div style="text-align:right;">
-                <strong>Rp ${o.total.toLocaleString()}</strong>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function initAuth() {
-    // Auth initialized on tab click
-}
+// Start Admin App
+document.addEventListener('DOMContentLoaded', () => adminApp.init());

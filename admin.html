@@ -3,224 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Jastip web</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/admin.css">
+    <title>Admin - Jastip Web</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
-
     <div class="admin-layout">
-        <!-- macOS Style Sidebar -->
-        <aside class="admin-sidebar glass-card">
-            <div class="sidebar-brand">
-                <span class="brand-icon">🛡️</span>
-                <h2>Admin Jastip web</h2>
+        <!-- SIDEBAR (macOS Style) -->
+        <aside class="mac-sidebar glass-panel">
+            <div class="sidebar-header">
+                <div class="mac-traffic-lights">
+                    <span class="light red"></span>
+                    <span class="light yellow"></span>
+                    <span class="light green"></span>
+                </div>
+                <h2>Jastip Admin</h2>
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="#" class="sidebar-link active" data-target="dashboard-section"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
-                <li><a href="#" class="sidebar-link" data-target="merchant-section"><i data-lucide="store"></i> Merchant</a></li>
-                <li><a href="#" class="sidebar-link" data-target="pesanan-section"><i data-lucide="shopping-cart"></i> Pesanan</a></li>
-                <li><a href="#" class="sidebar-link" data-target="banner-section"><i data-lucide="image"></i> Banner</a></li>
-                <li><a href="#" class="sidebar-link" data-target="pengaturan-section"><i data-lucide="settings"></i> Pengaturan</a></li>
-                <li><a href="#" id="adminLogoutBtn" class="sidebar-link logout"><i data-lucide="log-out"></i> Logout</a></li>
-            </ul>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-target="dashboard">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="#" class="nav-link" data-target="merchant">
+                    <i data-lucide="store"></i> Merchant
+                </a>
+                <a href="#" class="nav-link" data-target="pesanan">
+                    <i data-lucide="shopping-cart"></i> Pesanan
+                </a>
+                <a href="#" class="nav-link" data-target="banner">
+                    <i data-lucide="image"></i> Banner
+                </a>
+                <a href="#" class="nav-link" data-target="pengaturan">
+                    <i data-lucide="settings"></i> Pengaturan
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#" class="nav-link text-danger" onclick="adminApp.logout()">
+                    <i data-lucide="log-out"></i> Logout
+                </a>
+            </div>
         </aside>
 
-        <!-- Main Content Panel -->
-        <main class="admin-content">
-            <!-- Dashboard Section -->
-            <section id="dashboard-section" class="admin-section active">
-                <h2>Dashboard Overview</h2>
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- SECTION: DASHBOARD -->
+            <section id="sec-dashboard" class="content-section active">
+                <header class="section-header">
+                    <h1>Dashboard</h1>
+                    <p class="text-muted">Ringkasan performa jastip hari ini.</p>
+                </header>
                 <div class="stats-grid">
-                    <div class="stat-card glass-card">
-                        <i data-lucide="store"></i>
-                        <div>
-                            <h4 id="statTotalMerchant">0</h4>
-                            <p>Total Merchant</p>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: #E0F2FE; color: #0284C7;"><i data-lucide="shopping-bag"></i></div>
+                        <div class="stat-info">
+                            <h3>Total Pesanan</h3>
+                            <h2 id="stat-orders">0</h2>
                         </div>
                     </div>
-                    <div class="stat-card glass-card">
-                        <i data-lucide="shopping-bag"></i>
-                        <div>
-                            <h4 id="statTotalOrder">0</h4>
-                            <p>Total Pesanan</p>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: #DCFCE7; color: #16A34A;"><i data-lucide="wallet"></i></div>
+                        <div class="stat-info">
+                            <h3>Pendapatan Admin</h3>
+                            <h2 id="stat-revenue">Rp 0</h2>
                         </div>
                     </div>
-                    <div class="stat-card glass-card">
-                        <i data-lucide="check-circle"></i>
-                        <div>
-                            <h4 id="statCompletedOrder">0</h4>
-                            <p>Pesanan Selesai</p>
-                        </div>
-                    </div>
-                    <div class="stat-card glass-card">
-                        <i data-lucide="wallet"></i>
-                        <div>
-                            <h4 id="statTotalPendapatan">Rp 0</h4>
-                            <p>Estimasi Pendapatan</p>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon" style="background: #FEF3C7; color: #D97706;"><i data-lucide="store"></i></div>
+                        <div class="stat-info">
+                            <h3>Merchant Aktif</h3>
+                            <h2 id="stat-merchants">0</h2>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Merchant Section (CRUD) -->
-            <section id="merchant-section" class="admin-section">
-                <div class="section-header-flex">
-                    <h2>Manajemen Merchant</h2>
-                    <button class="btn-primary" id="openAddMerchantModalBtn"><i data-lucide="plus"></i> Tambah Merchant</button>
-                </div>
-                <div class="table-responsive glass-card">
-                    <table class="admin-table">
+            <!-- SECTION: MERCHANT -->
+            <section id="sec-merchant" class="content-section hidden">
+                <header class="section-header flex-between">
+                    <div>
+                        <h1>Kelola Merchant</h1>
+                        <p class="text-muted">Daftar merchant yang tersedia di aplikasi.</p>
+                    </div>
+                    <button class="btn-primary ripple" onclick="adminApp.openModal('merchant-modal')">
+                        <i data-lucide="plus"></i> Tambah Merchant
+                    </button>
+                </header>
+                <div class="table-container glass-panel">
+                    <table class="modern-table">
                         <thead>
                             <tr>
                                 <th>Foto</th>
-                                <th>Nama</th>
+                                <th>Nama Merchant</th>
                                 <th>Kategori</th>
+                                <th>Lokasi (Lat, Lng)</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody id="merchantTableBody"></tbody>
+                        <tbody id="table-merchants">
+                            <!-- Data injected via JS -->
+                        </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Pesanan Section -->
-            <section id="pesanan-section" class="admin-section">
-                <h2>Manajemen Pesanan</h2>
-                <div class="filter-bar glass-card">
-                    <select id="filterStatus">
-                        <option value="">Semua Status</option>
-                        <option value="Menunggu">Menunggu</option>
-                        <option value="Diproses">Diproses</option>
-                        <option value="Sedang Dibelikan">Sedang Dibelikan</option>
-                        <option value="Menuju Pelanggan">Menuju Pelanggan</option>
-                        <option value="Selesai">Selesai</option>
-                        <option value="Dibatalkan">Dibatalkan</option>
-                    </select>
-                </div>
-                <div class="table-responsive glass-card">
-                    <table class="admin-table">
+            <!-- SECTION: PESANAN -->
+            <section id="sec-pesanan" class="content-section hidden">
+                <header class="section-header">
+                    <h1>Pesanan Masuk</h1>
+                    <p class="text-muted">Kelola status pesanan pelanggan.</p>
+                </header>
+                <div class="table-container glass-panel">
+                    <table class="modern-table">
                         <thead>
                             <tr>
-                                <th>Invoice</th>
-                                <th>Pemesan</th>
+                                <th>ID</th>
+                                <th>Tanggal</th>
+                                <th>Pelanggan</th>
                                 <th>Merchant</th>
                                 <th>Total</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody id="adminOrderTableBody"></tbody>
+                        <tbody id="table-orders">
+                            <!-- Data injected via JS -->
+                        </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Banner Section -->
-            <section id="banner-section" class="admin-section">
-                <h2>Manajemen Banner</h2>
-                <div class="glass-card form-card">
-                    <p>Upload atau kelola banner promosi aplikasi.</p>
-                    <input type="file" id="bannerFileInput" accept="image/*">
-                    <button class="btn-primary" id="uploadBannerBtn">Upload Banner</button>
+            <!-- SECTION: BANNER -->
+            <section id="sec-banner" class="content-section hidden">
+                <header class="section-header flex-between">
+                    <div>
+                        <h1>Banner Promosi</h1>
+                        <p class="text-muted">Atur banner slider di halaman utama.</p>
+                    </div>
+                    <button class="btn-primary ripple" onclick="adminApp.openModal('banner-modal')">
+                        <i data-lucide="upload"></i> Upload Banner
+                    </button>
+                </header>
+                <div class="banner-grid" id="banner-list">
+                    <!-- Banners injected via JS -->
                 </div>
             </section>
 
-            <!-- Pengaturan Section -->
-            <section id="pengaturan-section" class="admin-section">
-                <h2>Pengaturan Sistem</h2>
-                <form id="settingsForm" class="glass-card form-card">
-                    <div class="form-group">
-                        <label>Nomor WhatsApp Admin</label>
-                        <input type="text" id="settingAdminWhatsapp" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Tarif Per KM (Rp)</label>
-                        <input type="number" id="settingTarifPerKm" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Biaya Admin (Rp)</label>
-                        <input type="number" id="settingBiayaAdmin" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Radius Maksimal (KM)</label>
-                        <input type="number" id="settingRadiusMaksimal" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nama Website</label>
-                        <input type="text" id="settingNamaWebsite" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Simpan Pengaturan</button>
-                </form>
+            <!-- SECTION: PENGATURAN -->
+            <section id="sec-pengaturan" class="content-section hidden">
+                <header class="section-header">
+                    <h1>Pengaturan Sistem</h1>
+                    <p class="text-muted">Konfigurasi tarif, kontak, dan aturan aplikasi.</p>
+                </header>
+                <div class="settings-card glass-panel">
+                    <form id="form-settings" class="modern-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tarif Ongkir per Km (Rp)</label>
+                                <input type="number" id="set-ongkir" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Biaya Admin per Transaksi (Rp)</label>
+                                <input type="number" id="set-admin-fee" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nomor WhatsApp Admin (Penerima Pesanan)</label>
+                                <input type="tel" id="set-wa" required placeholder="628xxxxxxxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label>Radius Maksimal Pengiriman (Km)</label>
+                                <input type="number" id="set-radius" required>
+                            </div>
+                            <div class="form-group col-span-2">
+                                <label>URL Logo Website</label>
+                                <input type="url" id="set-logo" placeholder="https://...">
+                            </div>
+                        </div>
+                        <div class="form-actions mt-3">
+                            <button type="submit" class="btn-primary ripple">Simpan Pengaturan</button>
+                        </div>
+                    </form>
+                </div>
             </section>
         </main>
     </div>
 
-    <!-- MERCHANT FORM MODAL (ADMIN) -->
-    <div id="adminMerchantModal" class="modal-backdrop">
-        <div class="modal-content glass-card">
-            <button class="modal-close" id="closeAdminMerchantModal"><i data-lucide="x"></i></button>
-            <h2 id="merchantModalTitle">Tambah Merchant</h2>
-            <form id="adminMerchantForm">
-                <input type="hidden" id="editMerchantId">
+    <!-- MODALS -->
+    <!-- Modal Merchant -->
+    <div id="merchant-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Form Merchant</h2>
+                <button class="btn-close" onclick="adminApp.closeModal('merchant-modal')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-merchant" class="modern-form">
+                <input type="hidden" id="merch-id">
                 <div class="form-group">
                     <label>Nama Merchant</label>
-                    <input type="text" id="merchantNama" required>
+                    <input type="text" id="merch-name" required>
                 </div>
                 <div class="form-group">
                     <label>Kategori</label>
-                    <select id="merchantKategori" required>
+                    <select id="merch-category" required>
                         <option value="Makanan">Makanan</option>
                         <option value="Minuman">Minuman</option>
-                        <option value="Belanja">Belanja</option>
+                        <option value="Snack">Snack</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Foto Merchant</label>
-                    <input type="file" id="merchantFotoFile" accept="image/*">
+                    <label>Jam Operasional</label>
+                    <input type="text" id="merch-hours" placeholder="08:00 - 21:00" required>
                 </div>
-                <div class="form-group">
-                    <label>Alamat</label>
-                    <textarea id="merchantAlamat" rows="2" required></textarea>
-                </div>
-                <div class="form-row">
+                <div class="form-grid mt-2">
                     <div class="form-group">
                         <label>Latitude</label>
-                        <input type="number" step="any" id="merchantLatitude" required>
+                        <input type="text" id="merch-lat" required>
                     </div>
                     <div class="form-group">
                         <label>Longitude</label>
-                        <input type="number" step="any" id="merchantLongitude" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Jam Buka</label>
-                        <input type="time" id="merchantJamBuka" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Jam Tutup</label>
-                        <input type="time" id="merchantJamTutup" required>
+                        <input type="text" id="merch-lng" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Status</label>
-                    <select id="merchantStatus" required>
-                        <option value="Buka">Buka</option>
-                        <option value="Tutup">Tutup</option>
-                    </select>
+                    <label>URL Foto Merchant</label>
+                    <input type="url" id="merch-img" required>
                 </div>
-                <button type="submit" class="btn-primary">Simpan Merchant</button>
+                <button type="submit" class="btn-primary w-100 mt-3">Simpan Merchant</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Banner -->
+    <div id="banner-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Upload Banner</h2>
+                <button class="btn-close" onclick="adminApp.closeModal('banner-modal')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-banner" class="modern-form">
+                <div class="form-group">
+                    <label>URL Gambar Banner</label>
+                    <input type="url" id="banner-url" required placeholder="https://...">
+                </div>
+                <button type="submit" class="btn-primary w-100 mt-3">Tambah Banner</button>
             </form>
         </div>
     </div>
 
     <!-- TOAST NOTIFICATION -->
-    <div id="adminToast" class="toast-notification"></div>
+    <div id="toast" class="toast hidden">Notifikasi</div>
 
     <script src="js/admin.js"></script>
 </body>
