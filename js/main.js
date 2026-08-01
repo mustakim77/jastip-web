@@ -223,54 +223,70 @@ function initOrderForm() {
 
 async function checkAuthStatus() {
     const container = document.getElementById('memberAuthContainer');
-    const user = (await supabase.auth.getUser()).data.user;
+    if (!container) return;
 
-    if (!user) {
-        container.innerHTML = `
-            <div class="glass-card" style="max-width:450px; margin:0 auto; padding:30px;">
-                <h2 style="margin-bottom:20px; text-align:center;">Login Member</h2>
-                <form id="loginForm">
-                    <div class="form-group"><label>Email</label><input type="email" id="loginEmail" required></div>
-                    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" required></div>
-                    <button type="submit" class="btn-primary">Login</button>
-                </form>
-            </div>
-        `;
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                showToast(error.message);
-            } else {
-                showToast('Login berhasil!');
-                checkAuthStatus();
+    try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        const user = data ? data.user : null;
+
+        if (!user) {
+            container.innerHTML = `
+                <div class="glass-card" style="max-width:450px; margin:0 auto; padding:30px;">
+                    <h2 style="margin-bottom:20px; text-align:center;">Login Member</h2>
+                    <form id="loginForm">
+                        <div class="form-group"><label>Email</label><input type="email" id="loginEmail" required></div>
+                        <div class="form-group"><label>Password</label><input type="password" id="loginPassword" required></div>
+                        <button type="submit" class="btn-primary">Login</button>
+                    </form>
+                </div>
+            `;
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('loginEmail').value;
+                    const password = document.getElementById('loginPassword').value;
+                    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+                    if (authError) {
+                        showToast(authError.message);
+                    } else {
+                        showToast('Login berhasil!');
+                        checkAuthStatus();
+                    }
+                });
             }
-        });
-    } else {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        if (profile && profile.role === 'admin') {
-            window.location.href = 'admin.html';
-            return;
+        } else {
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (profile && profile.role === 'admin') {
+                window.location.href = 'admin.html';
+                return;
+            }
+            container.innerHTML = `
+                <div class="glass-card" style="max-width:500px; margin:0 auto; padding:30px; text-align:center;">
+                    <h2>Profil Member</h2>
+                    <p style="margin:10px 0; color:#6B7280;">${user.email}</p>
+                    <button class="btn-primary" id="logoutBtn" style="margin-top:20px;">Logout</button>
+                </div>
+            `;
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    await supabase.auth.signOut();
+                    showToast('Berhasil logout');
+                    checkAuthStatus();
+                });
+            }
         }
-        container.innerHTML = `
-            <div class="glass-card" style="max-width:500px; margin:0 auto; padding:30px; text-align:center;">
-                <h2>Profil Member</h2>
-                <p style="margin:10px 0; color:#6B7280;">${user.email}</p>
-                <button class="btn-primary" id="logoutBtn" style="margin-top:20px;">Logout</button>
-            </div>
-        `;
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            showToast('Berhasil logout');
-            checkAuthStatus();
-        });
+    } catch (err) {
+        console.error('Auth status error:', err);
+        container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Terjadi kesalahan saat memuat data member.</p></div>`;
     }
 }
 
 async function loadOrderHistory() {
     const container = document.getElementById('orderContentContainer');
+    if (!container) return;
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
         container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Silakan login di menu Member untuk melihat riwayat pesanan.</p></div>`;
@@ -278,7 +294,7 @@ async function loadOrderHistory() {
     }
 
     const { data: orders, error } = await supabase.from('orders').select('*').eq('member_id', user.id);
-    if (error || !orders.length) {
+    if (error || !orders || !orders.length) {
         container.innerHTML = `<div class="glass-card" style="text-align:center; padding:40px;"><p>Belum ada riwayat pesanan.</p></div>`;
         return;
     }
