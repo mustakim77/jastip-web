@@ -6,12 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
     initNavigation();
     loadHomeData();
-    initAuth();
     initOrderForm();
 });
 
 function showToast(message) {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(() => {
@@ -20,24 +20,31 @@ function showToast(message) {
 }
 
 function initNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetId = item.getAttribute('data-target');
-            
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
+    const navMenu = document.querySelector('.nav-menu');
+    if (!navMenu) return;
 
-            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-            document.getElementById(targetId).classList.add('active');
+    navMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('.nav-item');
+        if (!item) return;
+        e.preventDefault();
+        
+        const targetId = item.getAttribute('data-target');
+        if (!targetId) return;
+        
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        item.classList.add('active');
 
-            if (targetId === 'pesanan-view') {
-                loadOrderHistory();
-            } else if (targetId === 'member-view') {
-                checkAuthStatus();
-            }
-        });
+        document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+            targetSection.classList.add('active');
+        }
+
+        if (targetId === 'pesanan-view') {
+            loadOrderHistory();
+        } else if (targetId === 'member-view') {
+            checkAuthStatus();
+        }
     });
 }
 
@@ -46,8 +53,8 @@ async function loadHomeData() {
         const { data: merchants, error } = await supabase.from('merchants').select('*');
         if (error) throw error;
 
-        renderMerchantGrids(merchants);
-        initSearch(merchants);
+        renderMerchantGrids(merchants || []);
+        initSearch(merchants || []);
     } catch (err) {
         console.error('Error loading home data:', err);
     }
@@ -58,11 +65,19 @@ function renderMerchantGrids(merchants) {
     const latestGrid = document.getElementById('latestMerchantGrid');
     const nearestGrid = document.getElementById('nearestMerchantGrid');
 
+    if (!merchants.length) {
+        const emptyHtml = `<p style="color:#6B7280; font-size:14px; padding:10px;">Belum ada merchant tersedia.</p>`;
+        if (popularGrid) popularGrid.innerHTML = emptyHtml;
+        if (latestGrid) latestGrid.innerHTML = emptyHtml;
+        if (nearestGrid) nearestGrid.innerHTML = emptyHtml;
+        return;
+    }
+
     const html = merchants.map(m => `
         <div class="merchant-card glass-card" onclick="openMerchantDetail('${m.id}')">
             <img src="${m.foto || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${m.nama}" class="merchant-img">
             <div class="merchant-info">
-                <span class="badge ${m.status.toLowerCase()}">${m.status}</span>
+                <span class="badge ${m.status ? m.status.toLowerCase() : 'buka'}">${m.status || 'Buka'}</span>
                 <h4 class="merchant-title">${m.nama}</h4>
                 <div class="merchant-meta">
                     <span>${m.kategori}</span>
@@ -72,14 +87,15 @@ function renderMerchantGrids(merchants) {
         </div>
     `).join('');
 
-    popularGrid.innerHTML = html;
-    latestGrid.innerHTML = html;
-    nearestGrid.innerHTML = html;
+    if (popularGrid) popularGrid.innerHTML = html;
+    if (latestGrid) latestGrid.innerHTML = html;
+    if (nearestGrid) nearestGrid.innerHTML = html;
     lucide.createIcons();
 }
 
 function initSearch(merchants) {
     const searchInput = document.getElementById('searchMerchantInput');
+    if (!searchInput) return;
     searchInput.addEventListener('input', (e) => {
         const keyword = e.target.value.toLowerCase();
         const filtered = merchants.filter(m => m.nama.toLowerCase().includes(keyword) || m.kategori.toLowerCase().includes(keyword));
@@ -110,9 +126,12 @@ async function openMerchantDetail(merchantId) {
     }
 }
 
-document.getElementById('closeMerchantModal').addEventListener('click', () => {
-    document.getElementById('merchantModal').classList.remove('show');
-});
+const closeMerchantModalBtn = document.getElementById('closeMerchantModal');
+if (closeMerchantModalBtn) {
+    closeMerchantModalBtn.addEventListener('click', () => {
+        document.getElementById('merchantModal').classList.remove('show');
+    });
+}
 
 function calculateHaversine(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -126,17 +145,18 @@ function calculateHaversine(lat1, lon1, lat2, lon2) {
 }
 
 async function openOrderModal(merchantId, mLat, mLng) {
-    document.getElementById('merchantModal').classList.remove('show');
+    const merchantModal = document.getElementById('merchantModal');
+    if (merchantModal) merchantModal.classList.remove('show');
+    
     document.getElementById('orderMerchantId').value = merchantId;
     document.getElementById('orderModal').classList.add('show');
 
-    // Fetch settings for calculation
-    const { data: settings } = await supabase.from('settings').select('*').single();
+    const { data: settings } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     
     const latInput = document.getElementById('orderLat');
     const lngInput = document.getElementById('orderLng');
 
-    const updateCalculation = async () => {
+    const updateCalculation = () => {
         const uLat = parseFloat(latInput.value) || mLat;
         const uLng = parseFloat(lngInput.value) || mLng;
         const distance = calculateHaversine(mLat, mLng, uLat, uLng);
@@ -151,29 +171,38 @@ async function openOrderModal(merchantId, mLat, mLng) {
         document.getElementById('summaryTotal').textContent = `Rp ${total.toLocaleString()}`;
     };
 
+    latInput.removeEventListener('input', updateCalculation);
     latInput.addEventListener('input', updateCalculation);
+    lngInput.removeEventListener('input', updateCalculation);
     lngInput.addEventListener('input', updateCalculation);
     updateCalculation();
 }
 
-document.getElementById('closeOrderModal').addEventListener('click', () => {
-    document.getElementById('orderModal').classList.remove('show');
-});
+const closeOrderModalBtn = document.getElementById('closeOrderModal');
+if (closeOrderModalBtn) {
+    closeOrderModalBtn.addEventListener('click', () => {
+        document.getElementById('orderModal').classList.remove('show');
+    });
+}
 
-document.getElementById('detectLocationBtn').addEventListener('click', () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            document.getElementById('orderLat').value = pos.coords.latitude;
-            document.getElementById('orderLng').value = pos.coords.longitude;
-            showToast('Lokasi berhasil dideteksi!');
-        }, () => {
-            showToast('Gagal mendeteksi lokasi');
-        });
-    }
-});
+const detectLocationBtn = document.getElementById('detectLocationBtn');
+if (detectLocationBtn) {
+    detectLocationBtn.addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                document.getElementById('orderLat').value = pos.coords.latitude;
+                document.getElementById('orderLng').value = pos.coords.longitude;
+                showToast('Lokasi berhasil dideteksi!');
+            }, () => {
+                showToast('Gagal mendeteksi lokasi');
+            });
+        }
+    });
+}
 
 function initOrderForm() {
     const form = document.getElementById('orderForm');
+    if (!form) return;
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const user = (await supabase.auth.getUser()).data.user;
@@ -257,7 +286,7 @@ async function checkAuthStatus() {
                 });
             }
         } else {
-            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
             if (profile && profile.role === 'admin') {
                 window.location.href = 'admin.html';
                 return;
@@ -311,8 +340,4 @@ async function loadOrderHistory() {
             </div>
         </div>
     `).join('');
-}
-
-function initAuth() {
-    // Auth initialized on tab click
 }
