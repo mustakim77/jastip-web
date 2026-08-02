@@ -761,7 +761,7 @@ const app = {
         container.innerHTML = data.map(m => `
             <div class="col-6 col-md-4 mb-3">
                 <div class="card border-0 shadow-sm h-100 product-card" onclick="app.openMerchantDetail('${m.id}')" style="border-radius: 12px; cursor: pointer;">
-                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" class="card-img-top" style="height: 110px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" class="card-img-top" style="height: 110px; object-fit:contain; border-top-left-radius: 12px; border-top-right-radius: 12px;">
                     <div class="card-body p-2">
                         <h6 class="fw-bold text-dark text-truncate mb-1" style="font-size:0.85rem;">${m.nama || m.name}</h6>
                         <span class="badge bg-light text-primary border" style="font-size:0.65rem;">${m.category || 'Makanan'}</span>
