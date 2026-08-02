@@ -46,7 +46,7 @@ const adminApp = {
 
         const titles = {
             'dashboard': 'Dashboard Overview',
-            'merchant': 'Kelola Stan / Merchant',
+            'merchant': 'Kelola Stan',
             'pesanan': 'Pesanan Masuk',
             'banner': 'Banner Promosi',
             'pengaturan': 'Pengaturan Tarif & Sistem'
@@ -352,8 +352,12 @@ const adminApp = {
             <div class="col-12 col-md-4">
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                     <img src="${b.url}" style="height: 120px; object-fit: cover;">
-                    <div class="card-body p-2 text-end">
-                        <button class="btn btn-sm btn-light text-danger" onclick="adminApp.deleteBanner(${b.id})"><i class="fa-solid fa-trash"></i> Hapus</button>
+                    <div class="card-body p-2 d-flex justify-content-between align-items-center">
+                        <span class="small fw-bold text-truncate text-muted">${b.title || 'Banner'}</span>
+                        <div>
+                            <button class="btn btn-sm btn-light text-primary me-1 rounded-3" onclick="adminApp.editBanner(${b.id})" title="Edit Banner"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-sm btn-light text-danger rounded-3" onclick="adminApp.deleteBanner(${b.id})" title="Hapus Banner"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -361,29 +365,78 @@ const adminApp = {
     },
 
     openBannerModal() {
-        document.getElementById('formBanner').reset();
-        new bootstrap.Modal(document.getElementById('modalBanner')).show();
+        const form = document.getElementById('formBanner');
+        if (form) form.reset();
+        const bannerIdInput = document.getElementById('bannerId');
+        if (bannerIdInput) bannerIdInput.value = '';
+        const modalTitle = document.getElementById('modalBannerTitle');
+        if (modalTitle) modalTitle.innerText = 'Tambah Banner Slider';
+        const btnSubmit = document.getElementById('btnBannerSubmit');
+        if (btnSubmit) btnSubmit.innerText = 'Upload Banner';
+        
+        const modalEl = document.getElementById('modalBanner');
+        if (modalEl) new bootstrap.Modal(modalEl).show();
+    },
+
+    editBanner(id) {
+        const b = this.state.banners.find(x => x.id == id);
+        if (!b) return;
+
+        const bannerIdInput = document.getElementById('bannerId');
+        if (bannerIdInput) bannerIdInput.value = b.id;
+        const urlInput = document.getElementById('bannerUrlInput');
+        if (urlInput) urlInput.value = b.url || '';
+        const titleInput = document.getElementById('bannerTitleInput');
+        if (titleInput) titleInput.value = b.title || '';
+        const subtitleInput = document.getElementById('bannerSubtitleInput');
+        if (subtitleInput) subtitleInput.value = b.subtitle || '';
+
+        const modalTitle = document.getElementById('modalBannerTitle');
+        if (modalTitle) modalTitle.innerText = 'Edit Banner Slider';
+        const btnSubmit = document.getElementById('btnBannerSubmit');
+        if (btnSubmit) btnSubmit.innerText = 'Simpan Perubahan';
+
+        const modalEl = document.getElementById('modalBanner');
+        if (modalEl) new bootstrap.Modal(modalEl).show();
     },
 
     async saveBanner(e) {
         e.preventDefault();
+        const bannerIdInput = document.getElementById('bannerId');
+        const id = bannerIdInput ? bannerIdInput.value : '';
         const url = document.getElementById('bannerUrlInput').value;
         const title = document.getElementById('bannerTitleInput').value;
         const subtitle = document.getElementById('bannerSubtitleInput').value;
 
         try {
-            const { error } = await dbClient.from('banners').insert([{ 
-                url: url, 
-                title: title, 
-                subtitle: subtitle 
-            }]);
-            
-            if (error) throw error;
-            bootstrap.Modal.getInstance(document.getElementById('modalBanner')).hide();
-            alert("✅ Banner berhasil ditambahkan!");
+            if (id) {
+                const { error } = await dbClient.from('banners').update({ 
+                    url: url, 
+                    title: title, 
+                    subtitle: subtitle 
+                }).eq('id', id);
+                
+                if (error) throw error;
+                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Banner berhasil diupdate!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
+            } else {
+                const { error } = await dbClient.from('banners').insert([{ 
+                    url: url, 
+                    title: title, 
+                    subtitle: subtitle 
+                }]);
+                
+                if (error) throw error;
+                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Banner berhasil ditambahkan!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
+            }
+
+            const modalEl = document.getElementById('modalBanner');
+            if (modalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+            }
             this.fetchAllData();
         } catch (err) {
-            alert("❌ Gagal: " + err.message);
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
         }
     },
 
@@ -391,23 +444,23 @@ const adminApp = {
         try {
             const { error } = await dbClient.from('banners').delete().eq('id', id);
             if (error) throw error;
-            Swal.fire('Dihapus!', 'Banner dihapus.', 'success');
+            Swal.fire({ icon: 'success', title: 'Dihapus!', text: 'Banner berhasil dihapus.', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
             this.fetchAllData();
         } catch (err) {
-            Swal.fire('Gagal', err.message, 'error');
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
         }
     },
 
     async deleteMerchant(id) {
-        const confirm = await Swal.fire({ title: 'Hapus stan?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya' });
+        const confirm = await Swal.fire({ title: 'Hapus stan?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya', customClass: { popup: 'rounded-4' } });
         if (confirm.isConfirmed) {
             try {
                 const { error } = await dbClient.from('merchants').delete().eq('id', id);
                 if (error) throw error;
-                Swal.fire('Terhapus!', 'Stan dihapus.', 'success');
+                Swal.fire({ icon: 'success', title: 'Terhapus!', text: 'Stan dihapus.', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
                 this.fetchAllData();
             } catch (err) {
-                Swal.fire('Gagal', err.message, 'error');
+                Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
             }
         }
     },
@@ -439,10 +492,10 @@ const adminApp = {
 
                     if (error) throw error;
                     
-                    alert("✅ Pengaturan berhasil diupdate!");
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Pengaturan berhasil diupdate!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
                     this.fetchAllData();
                 } catch (err) {
-                    alert("❌ Gagal menyimpan data!\nPenyebab: " + err.message);
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menyimpan data: ' + err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
                 } finally {
                     btn.innerText = originalText;
                 }
@@ -504,11 +557,11 @@ const adminApp = {
                         if (error) throw error;
                     }
 
-                    Swal.fire("Berhasil!", "Data stan berhasil disimpan!", "success");
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Data stan berhasil disimpan!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
                     bootstrap.Modal.getInstance(document.getElementById('modalStan')).hide();
                     this.fetchAllData();
                 } catch (err) {
-                    Swal.fire("Gagal", err.message, "error");
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
                 } finally {
                     btn.innerText = originalText;
                 }
@@ -573,7 +626,7 @@ const adminApp = {
                         (position) => {
                             this.setMarkerPosition(position.coords.latitude, position.coords.longitude, 18);
                             btnGetGps.innerText = "📍 Gunakan GPS HP Saya";
-                            Swal.fire({ icon: 'success', title: 'GPS Ditemukan!', timer: 1500, showConfirmButton: false });
+                            Swal.fire({ icon: 'success', title: 'GPS Ditemukan!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
                         },
                         () => {
                             alert("Gagal mendeteksi GPS. Periksa izin lokasi browser Anda.");

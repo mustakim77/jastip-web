@@ -859,15 +859,14 @@ const app = {
             }
 
             slider.innerHTML = banners.map(b => `
-                <div class="banner-card-item">
-                    <img src="${b.url}" alt="Promo Banner">
-                    <div class="banner-overlay">
-                        <span class="banner-badge">PROMO SPESIAL</span>
-                        <div class="banner-title">${b.title || 'JASTIP TERCEPAT'}</div>
-                        <div class="banner-subtitle">${b.subtitle || 'LAYANAN ANTAR MAKANAN PROFESIONAL'}</div>
-                    </div>
-                </div>
-            `).join('');
+    <div class="banner-card-item">
+        <img src="${b.url}" alt="Promo Banner">
+        <div class="banner-overlay">
+            ${b.title ? `<div class="banner-title">${b.title}</div>` : ''}
+            ${b.subtitle ? `<div class="banner-subtitle">${b.subtitle}</div>` : ''}
+        </div>
+    </div>
+`).join('');
 
             if (dotsContainer) {
                 dotsContainer.innerHTML = banners.map((_, i) => `

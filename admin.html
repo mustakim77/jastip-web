@@ -31,7 +31,7 @@
                 <i class="fa-solid fa-house"></i> Dashboard
             </a>
             <a href="#" class="list-group-item" onclick="adminApp.switchSection('merchant', this)">
-                <i class="fa-solid fa-store"></i> Kelola Stan / Merchant
+                <i class="fa-solid fa-store"></i> Kelola Stan
             </a>
             <a href="#" class="list-group-item" onclick="adminApp.switchSection('pesanan', this)">
                 <i class="fa-solid fa-shopping-cart"></i> Pesanan
@@ -56,11 +56,11 @@
                 <button class="btn border-0 me-3 rounded-3 px-3 py-2 menu-btn" id="menu-toggle">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <h4 class="m-0 fw-bold fs-5" id="pageTitle">Dashboard Overview</h4>
+                <h4 class="m-0 fw-bold fs-5" id="pageTitle">Dashboard</h4>
             </div>
             <div>
                 <span class="badge rounded-pill px-3 py-2 fw-semibold" style="background: #e0e5f2; color: #4318ff;">
-                    <i class="fa-solid fa-user-shield me-1"></i> Administrator
+                    <i class="fa-solid fa-user-shield me-1"></i> Admin
                 </span>
             </div>
         </nav>
@@ -254,16 +254,16 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow rounded-4 p-3">
       <div class="modal-header border-bottom-0">
-        <h5 class="modal-title fw-bold">Tambah Banner Slider</h5>
+        <h5 class="modal-title fw-bold" id="modalBannerTitle">Tambah Banner Slider</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <form id="formBanner" onsubmit="adminApp.saveBanner(event)">
+            <input type="hidden" id="bannerId">
             <div class="mb-3">
-                <label class="form-label small fw-bold">URL Gambar Banner</label>
+                <label class="form-label small fw-bold">URL Gambar Banner <span class="text-muted fw-normal">(Rekomendasi: 1200 x 600 px)</span></label>
                 <input type="url" id="bannerUrlInput" class="form-control" placeholder="https://..." required>
             </div>
-            <!-- TAMBAHAN INPUT CUSTOM TEKS -->
             <div class="mb-3">
                 <label class="form-label small fw-bold">Judul Banner (Custom)</label>
                 <input type="text" id="bannerTitleInput" class="form-control" placeholder="Contoh: PROMO MAKANAN SIANG">
@@ -272,8 +272,7 @@
                 <label class="form-label small fw-bold">Subjudul / Keterangan (Custom)</label>
                 <input type="text" id="bannerSubtitleInput" class="form-control" placeholder="Contoh: DISKON ONGKIR HINGGA 50%">
             </div>
-            <!-- SELESAI TAMBAHAN -->
-            <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">Upload Banner</button>
+            <button type="submit" id="btnBannerSubmit" class="btn btn-primary w-100 fw-semibold py-2">Upload Banner</button>
         </form>
       </div>
     </div>
