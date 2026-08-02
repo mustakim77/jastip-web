@@ -1006,7 +1006,7 @@ const app = {
             if (data) {
                 if (data.role && data.role.toLowerCase() === 'admin') {
                     localStorage.setItem('jastipUser', JSON.stringify(data));
-                    this.showToast('Mengalihkan ke Panel Admin...');
+                    this.showToast('Login Panel Admin');
                     setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
                     return;
                 }

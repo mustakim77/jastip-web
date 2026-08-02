@@ -124,31 +124,31 @@
         </div>
 
         <!-- 3. SECTION: PESANAN -->
-<div id="section-pesanan" class="section-content" style="display:none;">
-    <div class="premium-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-bold mb-0"><i class="fa-solid fa-shopping-cart me-2 text-primary"></i> Data Pesanan Masuk</h5>
-            <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" onclick="adminApp.deleteAllAdminOrders()">
-                <i class="fa-solid fa-trash-can me-1"></i> Hapus Semua Pesanan
-            </button>
+        <div id="section-pesanan" class="section-content" style="display:none;">
+            <div class="premium-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-shopping-cart me-2 text-primary"></i> Data Pesanan Masuk</h5>
+                    <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" onclick="adminApp.deleteAllAdminOrders()">
+                        <i class="fa-solid fa-trash-can me-1"></i> Hapus Semua Pesanan
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID Order</th>
+                                <th>Tanggal</th>
+                                <th>Pelanggan</th>
+                                <th>Stan</th>
+                                <th>Total</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableOrders"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>ID Order</th>
-                        <th>Tanggal</th>
-                        <th>Pelanggan</th>
-                        <th>Stan</th>
-                        <th>Total</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tableOrders"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
 
         <!-- 4. SECTION: BANNER -->
         <div id="section-banner" class="section-content" style="display:none;">
@@ -207,13 +207,17 @@
                 <input type="text" id="stanNama" class="form-control" required placeholder="Contoh: Nasi Goreng Spesial">
             </div>
 
+            <!-- KATEGORI STAN DENGAN DATALIST (Bisa Pilih & Ketik Manual) -->
             <div class="mb-3">
                 <label class="form-label small fw-bold">Kategori Stan</label>
-                <select id="stanCategory" class="form-select" required>
-                    <option value="Makanan">Makanan</option>
-                    <option value="Minuman">Minuman</option>
-                    <option value="Snack">Snack</option>
-                </select>
+                <input type="text" class="form-control" id="stanCategory" list="categoryList" placeholder="Pilih atau ketik kategori baru..." required>
+                <datalist id="categoryList">
+                    <option value="Makanan">
+                    <option value="Minuman">
+                    <option value="Snack">
+                    <option value="Sembako">
+                    <option value="Jasa">
+                </datalist>
             </div>
             
             <div class="mb-3">

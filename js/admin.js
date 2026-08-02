@@ -153,7 +153,6 @@ const adminApp = {
         }
 
         try {
-            // 1. Ambil semua ID pesanan di database
             const { data: allOrders, error: fetchError } = await dbClient.from('orders').select('id');
             if (fetchError) throw fetchError;
 
@@ -168,10 +167,8 @@ const adminApp = {
                 return;
             }
 
-            // 2. Petakan ID ke dalam array
             const idsToDelete = allOrders.map(o => o.id);
 
-            // 3. Hapus data berdasarkan array ID tersebut
             const { error } = await dbClient
                 .from('orders')
                 .delete()
@@ -223,11 +220,23 @@ const adminApp = {
             this.renderMerchants();
             this.renderOrders();
             this.renderBanners();
+            this.updateCategoryDatalist();
 
             Swal.close();
         } catch (err) {
             Swal.fire('Error', 'Gagal memuat data dari database: ' + err.message, 'error');
         }
+    },
+
+    updateCategoryDatalist() {
+        const datalist = document.getElementById('categoryList');
+        if (!datalist) return;
+
+        const existingCategories = [...new Set(this.state.merchants.map(m => m.category || m.kategori).filter(Boolean))];
+        const defaultCategories = ['Makanan', 'Minuman', 'Snack', 'Sembako', 'Jasa'];
+        const allCategories = [...new Set([...defaultCategories, ...existingCategories])];
+
+        datalist.innerHTML = allCategories.map(cat => `<option value="${cat}">`).join('');
     },
 
     renderDashboard() {
