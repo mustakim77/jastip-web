@@ -1,5 +1,5 @@
 /**
- * JASTIP WEB - MAIN JS (Full Order, Merchant Menus & GPS Distance Calculation)
+ * JASTIP SAWOO - MAIN JS (Full Order, Merchant Menus & GPS Distance Calculation)
  */
 
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
@@ -42,13 +42,13 @@ const app = {
         const metodePembayaran = document.getElementById('orderPayment')?.value || 'COD';
 
         if (!namaPelanggan || !noWa || !alamat) {
-            this.showToast('⚠️ Harap isi Nama, No WhatsApp, dan Alamat pengiriman!');
+            this.showToast('⚠️ Isi Nama, No WhatsApp, dan Alamat pengiriman!');
             return;
         }
 
         // --- TAMBAHKAN VALIDASI GPS INI KEMBALI ---
         if (!this.state.userLocation) {
-            this.showToast('⚠️ Harap klik "Ambil Titik Lokasi GPS" terlebih dahulu!');
+            this.showToast('⚠️ Ambil Titik Lokasi GPS Anda dulu!');
             return;
         }
         // ------------------------------------------
@@ -121,7 +121,7 @@ const app = {
         this.updatePesananBadge();
         this.renderPesananPage();
 
-        this.showToast('✅ Berhasil dimasukkan ke Daftar Pesanan!');
+        this.showToast('✅ Berhasil dimasukkan Daftar Pesanan!');
         this.switchTab('pesanan');
     },
 
@@ -189,7 +189,7 @@ const app = {
         `;
     },
 
-    // Fungsi untuk mengirim seluruh rekap pesanan ke WhatsApp dengan logika jarak stan terjauh
+    // Fungsi untuk mengirim seluruh list pesanan ke WhatsApp dengan logika jarak stan terjauh
     kirimSemuaPesananWA() {
         let daftarPesanan = JSON.parse(localStorage.getItem('jastipPesanan')) || [];
         if (daftarPesanan.length === 0) {
@@ -197,7 +197,7 @@ const app = {
             return;
         }
 
-        let pesan = "*REKAP PESANAN JASTIP WEB*\n\n";
+        let pesan = "*LIST PESANAN JASTIP SAWOO*\n\n";
         let totalSubtotalMenu = 0;
         let maxDistance = 0;
         let infoLokasi = 'Belum diambil';
@@ -267,7 +267,7 @@ const app = {
         pesan += `Ongkir Bersama: Rp ${calculatedShipping.toLocaleString('id-ID')}\n`;
         pesan += `Biaya Layanan: Rp ${serviceFee.toLocaleString('id-ID')}\n`;
         pesan += `Maps Pelanggan: ${infoLokasi}\n`;
-        pesan += `*Total Keseluruhan (Menu + Ongkir + Layanan):* Rp ${grandTotalAll.toLocaleString('id-ID')}\n\n`;
+        pesan += `*Total Tagihan:* Rp ${grandTotalAll.toLocaleString('id-ID')}\n\n`;
         pesan += `_Segera proses pesanan ini._`;
 
         let urlWA = `https://wa.me/${this.state.admin_whatsapp}?text=${encodeURIComponent(pesan)}`;
@@ -309,7 +309,7 @@ const app = {
 
             if (imgEl) imgEl.src = merchant.foto || merchant.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600';
             if (nameEl) nameEl.innerText = merchant.nama || merchant.name || 'Stan Jastip';
-            if (descEl) descEl.innerText = merchant.alamat || merchant.desc || 'Stan terpercaya pilihan Jastip Web.';
+            if (descEl) descEl.innerText = merchant.alamat || merchant.desc || 'Stan terpercaya pilihan Jastip Sawoo.';
             if (hoursEl) hoursEl.innerText = `Buka: ${merchant.jam_buka || merchant.hours || '08:00 - 21:00'}`;
 
             await this.loadMerchantMenus(id);
@@ -501,7 +501,7 @@ const app = {
     async processOrder(e) {
         e.preventDefault();
         if (!this.state.userLocation) {
-            this.showToast("Harap ambil titik lokasi GPS Anda terlebih dahulu!");
+            this.showToast("⚠️ Ambil Titik Lokasi GPS Anda dulu!");
             return;
         }
 
@@ -581,11 +581,11 @@ const app = {
         }
 
         // Susun teks pesan WhatsApp yang lengkap dan rapi
-        let pesan = `*ORDER BARU - JASTIP WEB*\n\n`;
+        let pesan = `*ORDER BARU - JASTIP SAWOO*\n\n`;
         pesan += `*ID:* ${orderId}\n`;
         pesan += `*Stan / Merchant:* ${merchantName}\n`;
         pesan += `*Pemesan:* ${name}\n`;
-        pesan += `*WA:* ${wa}\n`;
+        pesan += `*No WA:* ${wa}\n`;
         pesan += `*Alamat:* ${address}\n\n`;
         pesan += `*Menu:*\n${orderListText}\n`;
         pesan += `Subtotal Menu: Rp ${subtotalMenu.toLocaleString('id-ID')}\n\n`;
@@ -597,7 +597,7 @@ const app = {
         pesan += `Ongkir: Rp ${shipping.toLocaleString('id-ID')}\n`;
         pesan += `Biaya Layanan: Rp ${serviceFee.toLocaleString('id-ID')}\n`;
         pesan += `Maps Pelanggan: https://maps.google.com/?q=${this.state.userLocation.lat},${this.state.userLocation.lng}\n`;
-        pesan += `*Total Keseluruhan (Menu + Ongkir + Layanan):* Rp ${grandTotal.toLocaleString('id-ID')}\n\n`;
+        pesan += `*Total Tagihan:* Rp ${grandTotal.toLocaleString('id-ID')}\n\n`;
         pesan += `_Segera proses pesanan ini._`;
 
         this.showToast("Pesanan dibuat! Membuka WhatsApp...");

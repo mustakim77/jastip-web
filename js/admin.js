@@ -1,5 +1,5 @@
 /**
- * JASTIP WEB - ADMIN JS (Optional Photo Upload, Edit & Maps)
+ * JASTIP SAWOO - ADMIN JS (Optional Photo Upload, Edit & Maps)
  */
 
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
