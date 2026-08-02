@@ -850,9 +850,9 @@ const app = {
                     <div class="banner-card-item">
                         <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600" alt="Default Banner">
                         <div class="banner-overlay">
-                            <span class="banner-badge">BUKA TIAP HARI</span>
-                            <div class="banner-title">JASTIP TERCEPAT</div>
-                            <div class="banner-subtitle">LAYANAN ANTAR MAKANAN PROFESIONAL</div>
+                            <span class="banner-badge">OPEN SETIAP HARI</span>
+                            <div class="banner-title">JASTIP SAWOO</div>
+                            <div class="banner-subtitle">Area SAWOO, SAMBIT Dan Sekitarnya</div>
                         </div>
                     </div>`;
                 return;
