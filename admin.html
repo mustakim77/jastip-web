@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Jastip Web</title>
+    <title>Admin - Jastip Sawoo</title>
     
     <!-- Google Fonts & CSS Frameworks -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,8 +22,9 @@
 <div id="wrapper">
     <!-- SIDEBAR -->
     <div id="sidebar-wrapper">
-        <div class="sidebar-heading">
-            <i class="fa-solid fa-utensils me-2"></i> JASTIP ADMIN
+        <div class="sidebar-heading d-flex align-items-center">
+            <img src="https://i.ibb.co/DgQ67nQX/logo-jastip.jpg" alt="Logo Jastip" class="me-2 rounded-3 shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
+            <span>JASTIP ADMIN</span>
         </div>
         <div class="list-group list-group-flush mt-2 px-3 gap-1">
             <a href="#" class="list-group-item active" onclick="adminApp.switchSection('dashboard', this)">
@@ -81,7 +82,7 @@
                         <div class="stat-icon" style="background: #dcfce7; color: #15803d;"><i class="fa-solid fa-wallet"></i></div>
                         <div class="stat-details">
                             <h3 id="stat-revenue">Rp 0</h3>
-                            <h6>PENDAPATAN ADMIN</h6>
+                            <h6>PENDAPATAN ADMIN WEB</h6>
                         </div>
                     </div>
                 </div>
@@ -123,26 +124,31 @@
         </div>
 
         <!-- 3. SECTION: PESANAN -->
-        <div id="section-pesanan" class="section-content" style="display:none;">
-            <div class="premium-card">
-                <h5 class="fw-bold mb-4"><i class="fa-solid fa-shopping-cart me-2 text-primary"></i> Data Pesanan Masuk</h5>
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr>
-                                <th>ID Order</th>
-                                <th>Tanggal</th>
-                                <th>Pelanggan</th>
-                                <th>Stan</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableOrders"></tbody>
-                    </table>
-                </div>
-            </div>
+<div id="section-pesanan" class="section-content" style="display:none;">
+    <div class="premium-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-shopping-cart me-2 text-primary"></i> Data Pesanan Masuk</h5>
+            <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" onclick="adminApp.deleteAllAdminOrders()">
+                <i class="fa-solid fa-trash-can me-1"></i> Hapus Semua Pesanan
+            </button>
         </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>ID Order</th>
+                        <th>Tanggal</th>
+                        <th>Pelanggan</th>
+                        <th>Stan</th>
+                        <th>Total</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableOrders"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
         <!-- 4. SECTION: BANNER -->
         <div id="section-banner" class="section-content" style="display:none;">
@@ -173,8 +179,8 @@
                         <div class="col-6"><label class="form-label small fw-bold">Maximum Fee (Rp)</label><input type="number" id="setMax" class="form-control" required></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Biaya Layanan / Jastip (Rp)</label>
-                        <input type="number" id="setService" class="form-control" required>
+                        <label class="form-label small fw-bold">Biaya Layanan Web</label>
+                        <input type="number" id="setService" class="form-control" readonly style="background-color: #e9ecef; cursor: not-allowed;" title="Biaya layanan bersifat tetap dan tidak dapat diubah">
                     </div>
                     <button type="submit" class="btn btn-primary w-100 fw-semibold py-2 mt-3">Simpan Pengaturan</button>
                 </form>

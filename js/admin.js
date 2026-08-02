@@ -58,6 +58,149 @@ const adminApp = {
         }
     },
 
+    // Hapus 1 pesanan berdasarkan ID dengan password khusus (Input teks biasa)
+    async deleteAdminOrder(orderId) {
+        const { value: passwordInput, isConfirmed } = await Swal.fire({
+            title: 'Konfirmasi Penghapusan',
+            text: 'Masukkan password khusus untuk menghapus pesanan ini:',
+            input: 'text',
+            inputPlaceholder: 'Ketik password di sini...',
+            showCancelButton: true,
+            confirmButtonText: 'Hapus',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#FF3B30',
+            cancelButtonColor: '#8E8E93',
+            customClass: {
+                popup: 'rounded-4 shadow-lg border-0'
+            }
+        });
+
+        if (!isConfirmed) return;
+
+        const SPECIAL_PASSWORD = "koirul07";
+
+        if (passwordInput !== SPECIAL_PASSWORD) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Password khusus salah! Penghapusan dibatalkan.',
+                confirmButtonColor: '#007AFF',
+                customClass: { popup: 'rounded-4' }
+            });
+            return;
+        }
+
+        try {
+            const { error } = await dbClient
+                .from('orders')
+                .delete()
+                .eq('id', orderId);
+
+            if (error) throw error;
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Terhapus!',
+                text: 'Pesanan berhasil dihapus dari database.',
+                timer: 1800,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-4' }
+            });
+            
+            this.fetchAllData();
+        } catch (err) {
+            console.error("Gagal menghapus pesanan:", err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Gagal menghapus pesanan dari server.',
+                confirmButtonColor: '#007AFF',
+                customClass: { popup: 'rounded-4' }
+            });
+        }
+    },
+
+    // Hapus SEMUA pesanan dengan password khusus
+    async deleteAllAdminOrders() {
+        const { value: passwordInput, isConfirmed } = await Swal.fire({
+            title: '⚠️ Peringatan Ekstrem',
+            text: 'Masukkan password khusus untuk menghapus SEMUA pesanan:',
+            input: 'text',
+            inputPlaceholder: 'Ketik password di sini...',
+            showCancelButton: true,
+            confirmButtonText: 'Hapus Semua',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#FF3B30',
+            cancelButtonColor: '#8E8E93',
+            customClass: {
+                popup: 'rounded-4 shadow-lg border-0'
+            }
+        });
+
+        if (!isConfirmed) return;
+
+        const SPECIAL_PASSWORD = "koirul07";
+
+        if (passwordInput !== SPECIAL_PASSWORD) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Password khusus salah! Penghapusan massal dibatalkan.',
+                confirmButtonColor: '#007AFF',
+                customClass: { popup: 'rounded-4' }
+            });
+            return;
+        }
+
+        try {
+            // 1. Ambil semua ID pesanan di database
+            const { data: allOrders, error: fetchError } = await dbClient.from('orders').select('id');
+            if (fetchError) throw fetchError;
+
+            if (!allOrders || allOrders.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Kosong',
+                    text: 'Tidak ada pesanan yang tersisa.',
+                    confirmButtonColor: '#007AFF',
+                    customClass: { popup: 'rounded-4' }
+                });
+                return;
+            }
+
+            // 2. Petakan ID ke dalam array
+            const idsToDelete = allOrders.map(o => o.id);
+
+            // 3. Hapus data berdasarkan array ID tersebut
+            const { error } = await dbClient
+                .from('orders')
+                .delete()
+                .in('id', idsToDelete);
+
+            if (error) throw error;
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Dikosongkan!',
+                text: 'Semua daftar pesanan berhasil dikosongkan.',
+                timer: 1800,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-4' }
+            });
+            
+            this.fetchAllData();
+        } catch (err) {
+            console.error("Gagal mengosongkan pesanan:", err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Gagal mengosongkan data pesanan: ' + err.message,
+                confirmButtonColor: '#007AFF',
+                customClass: { popup: 'rounded-4' }
+            });
+        }
+    },
+
     async fetchAllData() {
         Swal.fire({ title: 'Memuat data...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
         try {
@@ -188,7 +331,11 @@ const adminApp = {
                 <td>${o.customer}</td>
                 <td>${o.merchant}</td>
                 <td class="fw-semibold">Rp ${Number(o.total).toLocaleString('id-ID')}</td>
-                <td><span class="badge bg-warning-subtle text-warning">${o.status || 'Menunggu'}</span></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1 rounded-3 shadow-none" onclick="adminApp.deleteAdminOrder('${o.id}')" title="Hapus Pesanan">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
             </tr>
         `).join('');
     },
@@ -266,7 +413,6 @@ const adminApp = {
     },
 
     setupEventListeners() {
-        // // Form Pengaturan
         const formPengaturan = document.getElementById('formPengaturan');
         if (formPengaturan) {
             formPengaturan.addEventListener('submit', async (e) => {
@@ -279,7 +425,7 @@ const adminApp = {
                     const wa = document.getElementById('setWa').value.toString();
                     const min = parseFloat(document.getElementById('setMin').value) || 0;
                     const max = parseFloat(document.getElementById('setMax').value) || 0;
-                    const service = parseFloat(document.getElementById('setService').value) || 0;
+                    const service = parseFloat(document.getElementById('setService').value) || 1000;
                     const shippingRate = parseFloat(document.getElementById('setShippingRate').value) || 0;
 
                     const { error } = await dbClient.from('settings').upsert({
@@ -293,7 +439,6 @@ const adminApp = {
 
                     if (error) throw error;
                     
-                    // Notifikasi sukses menggunakan alert standar browser
                     alert("✅ Pengaturan berhasil diupdate!");
                     this.fetchAllData();
                 } catch (err) {
@@ -304,7 +449,6 @@ const adminApp = {
             });
         }
 
-        // Form Stan Baru / Edit Stan
         const formStan = document.getElementById('formStan');
         if (formStan) {
             formStan.addEventListener('submit', async (e) => {
@@ -330,7 +474,6 @@ const adminApp = {
                         throw new Error("Silakan tentukan titik lokasi pada peta terlebih dahulu.");
                     }
 
-                    // Handle upload foto dari HP (Konversi ke Base64)
                     let fotoFinal = existingFoto || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600';
                     if (fileInput.files && fileInput.files[0]) {
                         fotoFinal = await this.toBase64(fileInput.files[0]);
@@ -354,11 +497,9 @@ const adminApp = {
                     };
 
                     if (id) {
-                        // Update Stan
                         const { error } = await dbClient.from('merchants').update(payload).eq('id', id);
                         if (error) throw error;
                     } else {
-                        // Insert Stan Baru
                         const { error } = await dbClient.from('merchants').insert([payload]);
                         if (error) throw error;
                     }
