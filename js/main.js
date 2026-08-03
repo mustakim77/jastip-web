@@ -7,6 +7,28 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Helper untuk mengurai string foto menjadi Array (Aman dari pemisah |||, Base64, maupun koma)
+function parseMerchantPhotos(str) {
+    const defaultPlaceholder = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400';
+    if (!str) return [defaultPlaceholder];
+
+    let images = [];
+    if (typeof str === 'string') {
+        if (str.includes('|||')) {
+            images = str.split('|||').map(s => s.trim()).filter(Boolean);
+        } else if (str.includes('data:image/')) {
+            const matches = str.match(/data:image\/[^;]+;base64,[^|,]+/g);
+            images = (matches && matches.length > 0) ? matches : [str];
+        } else {
+            images = str.split(',').map(s => s.trim()).filter(Boolean);
+        }
+    } else if (Array.isArray(str)) {
+        images = str;
+    }
+
+    return images.length > 0 ? images : [defaultPlaceholder];
+}
+
 const app = {
     state: {
         merchants: [],
@@ -290,15 +312,65 @@ const app = {
             }
             this.state.currentMerchant = merchant;
 
-            const imgEl = document.getElementById('detailMerchantImg');
             const nameEl = document.getElementById('detailMerchantName');
             const descEl = document.getElementById('detailMerchantDesc');
             const hoursEl = document.getElementById('detailMerchantHours');
 
-            if (imgEl) imgEl.src = merchant.foto || merchant.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600';
             if (nameEl) nameEl.innerText = merchant.nama || merchant.name || 'Stan Jastip';
             if (descEl) descEl.innerText = merchant.alamat || merchant.desc || 'Stan terpercaya pilihan Jastip Sawoo.';
             if (hoursEl) hoursEl.innerText = `Buka: ${merchant.jam_buka || merchant.hours || '08:00 - 21:00'}`;
+
+            // Parse SEMUA foto milik merchant
+            const photos = parseMerchantPhotos(merchant.foto || merchant.img);
+
+            // 1. Render Gambar Carousel / Slider dengan interval 5 detik (5000ms)
+            const carouselEl = document.getElementById('merchantImageCarousel');
+            const carouselInner = document.getElementById('merchantCarouselInner');
+            const carouselIndicators = document.getElementById('merchantCarouselIndicators');
+            const prevBtn = document.getElementById('carouselPrevBtn');
+            const nextBtn = document.getElementById('carouselNextBtn');
+
+            if (carouselInner) {
+                carouselInner.innerHTML = photos.map((imgUrl, idx) => `
+                    <div class="carousel-item ${idx === 0 ? 'active' : ''}" data-bs-interval="5000">
+                        <img src="${imgUrl}" 
+                             class="d-block w-100" 
+                             style="aspect-ratio: 16 / 9; object-fit: cover; object-position: center; background-color: #f8f9fa;"
+                             alt="Foto Stan ${idx + 1}">
+                    </div>
+                `).join('');
+            }
+
+            // 2. Render Indikator, Panah, dan Inisialisasi Auto-Slide Bootstrap
+            if (photos.length > 1) {
+                if (carouselIndicators) {
+                    carouselIndicators.innerHTML = photos.map((_, idx) => `
+                        <button type="button" data-bs-target="#merchantImageCarousel" data-bs-slide-to="${idx}" class="${idx === 0 ? 'active' : ''}" aria-current="${idx === 0 ? 'true' : 'false'}"></button>
+                    `).join('');
+                }
+                if (prevBtn) prevBtn.classList.remove('d-none');
+                if (nextBtn) nextBtn.classList.remove('d-none');
+
+                // Inisialisasi ulang instance Bootstrap Carousel agar jalan otomatis tiap 5 detik
+                if (carouselEl && typeof bootstrap !== 'undefined') {
+                    const existingCarousel = bootstrap.Carousel.getInstance(carouselEl);
+                    if (existingCarousel) existingCarousel.dispose();
+
+                    new bootstrap.Carousel(carouselEl, {
+                        interval: 5000,
+                        ride: 'carousel',
+                        touch: true
+                    });
+                }
+            } else {
+                if (carouselIndicators) carouselIndicators.innerHTML = '';
+                if (prevBtn) prevBtn.classList.add('d-none');
+                if (nextBtn) nextBtn.classList.add('d-none');
+            }
+
+            // Fallback jika elemen img tunggal lama masih ada
+            const imgEl = document.getElementById('detailMerchantImg');
+            if (imgEl) imgEl.src = photos[0];
 
             await this.loadMerchantMenus(id);
 
@@ -602,12 +674,19 @@ const app = {
         const merchantNameEl = document.getElementById('detailMerchantName');
         const merchantDescEl = document.getElementById('detailMerchantDesc');
         const merchantHoursEl = document.getElementById('detailMerchantHours');
-        const merchantImgEl = document.getElementById('detailMerchantImg');
 
         if (merchantNameEl) merchantNameEl.innerText = 'Stan Lainnya (Manual)';
         if (merchantDescEl) merchantDescEl.innerText = 'Masukkan nama stan dan menu pesanan Anda secara manual di bawah.';
         if (merchantHoursEl) merchantHoursEl.innerText = 'Buka: Sesuai Permintaan';
-        if (merchantImgEl) merchantImgEl.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600';
+
+        const carouselInner = document.getElementById('merchantCarouselInner');
+        if (carouselInner) {
+            carouselInner.innerHTML = `
+                <div class="carousel-item active">
+                    <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600" class="d-block w-100" style="aspect-ratio: 16 / 9; object-fit: cover; object-position: center;" alt="Stan Manual">
+                </div>
+            `;
+        }
 
         const menuContainer = document.getElementById('orderItemsContainer');
         if (menuContainer) {
@@ -728,7 +807,7 @@ const app = {
             container.innerHTML = Array(4).fill(0).map(() => `
                 <div class="col-6 col-md-4 mb-3">
                     <div class="card border-0 shadow-sm h-100 p-2 placeholder-glow rounded-3">
-                        <div class="placeholder rounded-3 mb-2" style="height: 110px; width: 100%; background-color: #e2e8f0;"></div>
+                        <div class="placeholder rounded-3 mb-2" style="aspect-ratio: 4/3; width: 100%; background-color: #e2e8f0;"></div>
                         <div class="placeholder col-8 mb-1" style="height: 14px; background-color: #cbd5e1;"></div>
                         <div class="placeholder col-4" style="height: 10px; background-color: #e2e8f0;"></div>
                     </div>
@@ -761,14 +840,18 @@ const app = {
             return;
         }
 
-        container.innerHTML = data.map(m => `
+        container.innerHTML = data.map(m => {
+            const photos = parseMerchantPhotos(m.foto || m.img);
+            const firstPhoto = photos[0];
+
+            return `
             <div class="col-6 col-md-4 mb-3">
                 <div class="card border-0 shadow-sm h-100 product-card" onclick="app.openMerchantDetail('${m.id}')" style="border-radius: 12px; cursor: pointer;">
-                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" 
+                    <img src="${firstPhoto}" 
                          class="card-img-top" 
                          loading="lazy" 
                          decoding="async"
-                         style="height: 110px; object-fit:contain; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #f8f9fa;">
+                         style="aspect-ratio: 4 / 3; width: 100%; object-fit: cover; object-position: center; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #f8f9fa;">
                     <div class="card-body p-2">
                         <h6 class="fw-bold text-dark text-truncate mb-1" style="font-size:0.85rem;">${m.nama || m.name}</h6>
                         <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -778,7 +861,8 @@ const app = {
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     },
 
     filterMerchants(keyword) {
@@ -813,14 +897,18 @@ const app = {
             return;
         }
 
-        resultContainer.innerHTML = '<div class="row g-2">' + filtered.map(m => `
+        resultContainer.innerHTML = '<div class="row g-2">' + filtered.map(m => {
+            const photos = parseMerchantPhotos(m.foto || m.img);
+            const firstPhoto = photos[0];
+
+            return `
             <div class="col-6 col-md-4 mb-3">
                 <div class="card border-0 shadow-sm h-100 product-card" onclick="app.openMerchantDetail('${m.id}')" style="border-radius: 12px; cursor: pointer;">
-                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" 
+                    <img src="${firstPhoto}" 
                          class="card-img-top" 
                          loading="lazy" 
                          decoding="async"
-                         style="height: 110px; object-fit: cover; border-top-left-radius: 12px; background-color: #f8f9fa;">
+                         style="aspect-ratio: 4 / 3; width: 100%; object-fit: cover; object-position: center; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #f8f9fa;">
                     <div class="card-body p-2">
                         <h6 class="fw-bold text-dark text-truncate mb-1" style="font-size:0.85rem;">${m.nama || m.name}</h6>
                         <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -830,7 +918,8 @@ const app = {
                     </div>
                 </div>
             </div>
-        `).join('') + '</div>';
+            `;
+        }).join('') + '</div>';
     },
 
     setupEventListeners() {
