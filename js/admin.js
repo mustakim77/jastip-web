@@ -53,7 +53,7 @@ const adminApp = {
             'merchant': 'Kelola Stan',
             'pesanan': 'Pesanan Masuk',
             'banner': 'Banner Promosi',
-            'pengaturan': 'Pengaturan Tarif & Sistem'
+            'pengaturan': 'Pengaturan Tarif'
         };
         document.getElementById('pageTitle').innerText = titles[targetId] || 'Admin Panel';
 
