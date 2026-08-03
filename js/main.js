@@ -16,8 +16,8 @@ const app = {
         service_fee: 1000,
         admin_whatsapp: "6285799860406",
         calculatedGrandTotal: 0,
-        currentSlide: 0,   // <--- Tambahkan ini
-        slideTimer: null   // <--- Tambahkan ini
+        currentSlide: 0,
+        slideTimer: null
     },
     
     cart: [],
@@ -46,12 +46,10 @@ const app = {
             return;
         }
 
-        // --- TAMBAHKAN VALIDASI GPS INI KEMBALI ---
         if (!this.state.userLocation) {
             this.showToast('⚠️ Ambil Titik Lokasi GPS Anda dulu!');
             return;
         }
-        // ------------------------------------------
 
         const inputNamaMenus = document.querySelectorAll('.item-name');
         const inputJumlahs = document.querySelectorAll('.item-qty');
@@ -134,7 +132,6 @@ const app = {
         }
     },
 
-    // Render tampilan di halaman Pesanan
     renderPesananPage() {
         const container = document.getElementById('orderHistoryContainer');
         if (!container) return;
@@ -189,7 +186,6 @@ const app = {
         `;
     },
 
-    // Fungsi untuk mengirim seluruh list pesanan ke WhatsApp dengan logika jarak stan terjauh
     kirimSemuaPesananWA() {
         let daftarPesanan = JSON.parse(localStorage.getItem('jastipPesanan')) || [];
         if (daftarPesanan.length === 0) {
@@ -226,13 +222,11 @@ const app = {
 
             totalSubtotalMenu += subMenu;
 
-            // Ambil lokasi pelanggan
             if (pesanItem.userLocation) {
                 userLoc = pesanItem.userLocation;
                 infoLokasi = `https://maps.google.com/?q=${userLoc.lat},${userLoc.lng}`;
             }
 
-            // Hitung jarak stan ini ke pelanggan, cari yang PALING JAUH
             if (pesanItem.merchantLat && pesanItem.merchantLng && pesanItem.userLocation) {
                 let dist = this.haversineDistance(
                     Number(pesanItem.merchantLat), Number(pesanItem.merchantLng),
@@ -246,23 +240,17 @@ const app = {
             pesan += `\n-------------------\n\n`;
         });
 
-        // Hitung ongkir berdasarkan Jarak Terjauh
         const ratePerKm = Number(this.state.shipping_rate_per_km) || 3000;
         let calculatedShipping = maxDistance > 0 ? Math.ceil(maxDistance) * ratePerKm : 0;
 
-        // Terapkan batas Min/Max Fee jika ada
         const minFee = Number(this.state.minimum_fee) || 0;
         const maxFee = Number(this.state.maximum_fee) || 0;
         if (minFee > 0 && calculatedShipping < minFee) calculatedShipping = minFee;
         if (maxFee > 0 && calculatedShipping > maxFee) calculatedShipping = maxFee;
 
-        // Biaya layanan dihitung 1 kali
         const serviceFee = Number(this.state.service_fee) || 1000;
-        
-        // Total keseluruhan = Total Menu + 1x Ongkir Terjauh + 1x Biaya Layanan
         const grandTotalAll = totalSubtotalMenu + calculatedShipping + serviceFee;
 
-        // Ringkasan Akhir Pesanan
         pesan += `Jarak Terjauh Stan: ${maxDistance.toFixed(1)} km\n`;
         pesan += `Ongkir Bersama: Rp ${calculatedShipping.toLocaleString('id-ID')}\n`;
         pesan += `Biaya Layanan: Rp ${serviceFee.toLocaleString('id-ID')}\n`;
@@ -536,7 +524,6 @@ const app = {
             ? customStanInput.value.trim() 
             : (this.state.currentMerchant ? (this.state.currentMerchant.nama || this.state.currentMerchant.name) : 'Stan Jastip');
 
-        // Hitung subtotal menu
         let subtotalMenu = 0;
         let orderListText = itemsToProcess.map((item) => {
             let sub = (item.qty || 1) * item.price;
@@ -544,7 +531,6 @@ const app = {
             return `- ${item.name} (${item.qty || 1}x) @Rp${Number(item.price).toLocaleString('id-ID')} (Rp ${sub.toLocaleString('id-ID')})`;
         }).join('\n');
 
-        // Hitung jarak & ongkir dari stan aktif ke pelanggan (Mendukung lat/latitude & lng/longitude)
         let distance = 0;
         let shipping = 0;
         if (this.state.userLocation && this.state.currentMerchant) {
@@ -580,7 +566,6 @@ const app = {
             console.error("Gagal simpan order ke Supabase:", err);
         }
 
-        // Susun teks pesan WhatsApp yang lengkap dan rapi
         let pesan = `*ORDER BARU - JASTIP SAWOO*\n\n`;
         pesan += `*ID:* ${orderId}\n`;
         pesan += `*Stan / Merchant:* ${merchantName}\n`;
@@ -684,7 +669,6 @@ const app = {
     showToast(message) {
         const toast = document.getElementById('toastMessage');
         if (toast) {
-            // Tentukan ikon berdasarkan isi pesan agar terasa interaktif
             let icon = '<i class="fa-solid fa-circle-check text-success"></i>';
             if (message.includes('⚠️') || message.includes('kosong') || message.includes('Salah')) {
                 icon = '<i class="fa-solid fa-circle-exclamation text-danger"></i>';
@@ -693,7 +677,6 @@ const app = {
             toast.innerHTML = `${icon} <span>${message.replace(/^[✅⚠️❌]\s*/, '')}</span>`;
             toast.classList.add('show');
             
-            // Hapus timeout sebelumnya jika ada agar tidak tumpang tindih
             if (toast.timeoutId) clearTimeout(toast.timeoutId);
             
             toast.timeoutId = setTimeout(() => {
@@ -737,16 +720,36 @@ const app = {
         this.filterMerchants(cat);
     },
 
+    // --- OPTIMASI SKELETON LOADER & SPESIFIK KOLOM SUPABASE ---
     async loadMerchants() {
+        const container = document.getElementById('merchantListContainer');
+        
+        if (container) {
+            container.innerHTML = Array(4).fill(0).map(() => `
+                <div class="col-6 col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100 p-2 placeholder-glow rounded-3">
+                        <div class="placeholder rounded-3 mb-2" style="height: 110px; width: 100%; background-color: #e2e8f0;"></div>
+                        <div class="placeholder col-8 mb-1" style="height: 14px; background-color: #cbd5e1;"></div>
+                        <div class="placeholder col-4" style="height: 10px; background-color: #e2e8f0;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         try {
-            const { data, error } = await dbClient.from('merchants').select('*');
+            const { data, error } = await dbClient
+                .from('merchants')
+                .select('id, nama, name, category, foto, img, alamat, jam_buka, hours, latitude, lat, longitude, lng')
+                .order('id', { ascending: false });
+
             if (error) throw error;
             this.state.merchants = data || [];
             this.renderMerchantGrid(this.state.merchants);
         } catch (err) {
             console.error("Gagal memuat merchant:", err);
-            const container = document.getElementById('merchantListContainer');
-            if (container) container.innerHTML = '<p class="text-center text-muted">Belum ada merchant tersedia.</p>';
+            if (container) {
+                container.innerHTML = '<p class="text-center text-muted col-12 py-4">Gagal memuat merchant. Silakan muat ulang halaman.</p>';
+            }
         }
     },
 
@@ -754,17 +757,24 @@ const app = {
         const container = document.getElementById('merchantListContainer');
         if (!container) return;
         if (data.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted">Belum ada merchant.</p>';
+            container.innerHTML = '<p class="text-center text-muted col-12 py-4">Belum ada merchant.</p>';
             return;
         }
 
         container.innerHTML = data.map(m => `
             <div class="col-6 col-md-4 mb-3">
                 <div class="card border-0 shadow-sm h-100 product-card" onclick="app.openMerchantDetail('${m.id}')" style="border-radius: 12px; cursor: pointer;">
-                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" class="card-img-top" style="height: 110px; object-fit:contain; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" 
+                         class="card-img-top" 
+                         loading="lazy" 
+                         decoding="async"
+                         style="height: 110px; object-fit:contain; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #f8f9fa;">
                     <div class="card-body p-2">
                         <h6 class="fw-bold text-dark text-truncate mb-1" style="font-size:0.85rem;">${m.nama || m.name}</h6>
-                        <span class="badge bg-light text-primary border" style="font-size:0.65rem;">${m.category || 'Makanan'}</span>
+                        <div class="d-flex align-items-center gap-1 flex-wrap">
+                            <span class="badge bg-light text-primary border" style="font-size:0.65rem;">${m.category || 'Makanan'}</span>
+                            ${m.alamat ? `<span class="badge bg-light text-secondary border text-truncate" style="font-size:0.65rem; max-width: 90px;" title="${m.alamat}"><i class="fa-solid fa-location-dot me-1"></i>${m.alamat}</span>` : ''}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -784,10 +794,15 @@ const app = {
         if (pesananView) pesananView.style.display = 'none';
         if (memberView) memberView.style.display = 'none';
 
+        // Filter berdasarkan Nama, Kategori, DAN Alamat
         const filtered = this.state.merchants.filter(m => {
             const name = m.nama || m.name || '';
             const cat = m.category || '';
-            return name.toLowerCase().includes(keyword.toLowerCase()) || cat.toLowerCase().includes(keyword.toLowerCase());
+            const alamat = m.alamat || '';
+            const searchStr = keyword.toLowerCase();
+            return name.toLowerCase().includes(searchStr) || 
+                   cat.toLowerCase().includes(searchStr) || 
+                   alamat.toLowerCase().includes(searchStr);
         });
 
         const resultContainer = document.getElementById('resultContainer');
@@ -801,10 +816,17 @@ const app = {
         resultContainer.innerHTML = '<div class="row g-2">' + filtered.map(m => `
             <div class="col-6 col-md-4 mb-3">
                 <div class="card border-0 shadow-sm h-100 product-card" onclick="app.openMerchantDetail('${m.id}')" style="border-radius: 12px; cursor: pointer;">
-                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" class="card-img-top" style="height: 110px; object-fit: cover; border-top-left-radius: 12px;">
+                    <img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'}" 
+                         class="card-img-top" 
+                         loading="lazy" 
+                         decoding="async"
+                         style="height: 110px; object-fit: cover; border-top-left-radius: 12px; background-color: #f8f9fa;">
                     <div class="card-body p-2">
                         <h6 class="fw-bold text-dark text-truncate mb-1" style="font-size:0.85rem;">${m.nama || m.name}</h6>
-                        <span class="badge bg-light text-primary border" style="font-size:0.65rem;">${m.category || 'Makanan'}</span>
+                        <div class="d-flex align-items-center gap-1 flex-wrap">
+                            <span class="badge bg-light text-primary border" style="font-size:0.65rem;">${m.category || 'Makanan'}</span>
+                            ${m.alamat ? `<span class="badge bg-light text-secondary border text-truncate" style="font-size:0.65rem; max-width: 90px;" title="${m.alamat}"><i class="fa-solid fa-location-dot me-1"></i>${m.alamat}</span>` : ''}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -835,6 +857,7 @@ const app = {
         }
     },
 
+    // --- FITUR OPTIMASI PEMUATAN BANNER SLIDER ---
     async loadBanners() {
         try {
             const { data, error } = await dbClient.from('banners').select('*').order('id', { ascending: false });
@@ -848,7 +871,7 @@ const app = {
             if (banners.length === 0) {
                 slider.innerHTML = `
                     <div class="banner-card-item">
-                        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600" alt="Default Banner">
+                        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600" alt="Default Banner" fetchpriority="high" decoding="async">
                         <div class="banner-overlay">
                             <span class="banner-badge">OPEN SETIAP HARI</span>
                             <div class="banner-title">JASTIP SAWOO</div>
@@ -858,15 +881,20 @@ const app = {
                 return;
             }
 
-            slider.innerHTML = banners.map(b => `
-    <div class="banner-card-item">
-        <img src="${b.url}" alt="Promo Banner">
-        <div class="banner-overlay">
-            ${b.title ? `<div class="banner-title">${b.title}</div>` : ''}
-            ${b.subtitle ? `<div class="banner-subtitle">${b.subtitle}</div>` : ''}
-        </div>
-    </div>
-`).join('');
+            slider.innerHTML = banners.map((b, index) => `
+                <div class="banner-card-item">
+                    <img src="${b.url}" 
+                         alt="Promo Banner" 
+                         ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'} 
+                         decoding="async">
+                    ${(b.title || b.subtitle) ? `
+                        <div class="banner-overlay">
+                            ${b.title ? `<div class="banner-title">${b.title}</div>` : ''}
+                            ${b.subtitle ? `<div class="banner-subtitle">${b.subtitle}</div>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
 
             if (dotsContainer) {
                 dotsContainer.innerHTML = banners.map((_, i) => `
@@ -874,7 +902,6 @@ const app = {
                 `).join('');
             }
 
-            // --- MULAI AUTO SLIDE OTOMATIS ---
             this.startAutoSlide(banners.length);
 
         } catch (err) {
@@ -888,7 +915,7 @@ const app = {
         this.state.slideTimer = setInterval(() => {
             this.state.currentSlide = (this.state.currentSlide + 1) % totalSlides;
             this.goToSlide(this.state.currentSlide);
-        }, 3500); // Banner akan bergeser otomatis setiap 3.5 detik
+        }, 8000);
     },
 
     goToSlide(idx) {
