@@ -4,187 +4,228 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Jastip Sawoo</title>
-    
+
     <!-- Google Fonts & CSS Frameworks -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- CSS TEMA ADMIN (iOS LUXURY) -->
     <link rel="stylesheet" href="css/admin.css">
+    
     <style>
-        #interactiveMap { height: 260px; border-radius: 12px; margin-bottom: 10px; z-index: 1050; }
+        #interactiveMap {
+            height: 220px;
+            width: 100%;
+            border-radius: 14px;
+            margin-bottom: 10px;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
 
 <div id="wrapper">
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR (GLASSMORPHISM) -->
     <div id="sidebar-wrapper">
-        <div class="sidebar-heading d-flex align-items-center">
-            <img src="https://i.ibb.co/DgQ67nQX/logo-jastip.jpg" alt="Logo Jastip" class="me-2 rounded-3 shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
-            <span>JASTIP ADMIN</span>
+        <div class="sidebar-heading">
+            <img src="https://i.ibb.co/DgQ67nQX/logo-jastip.jpg" alt="Logo Jastip" class="rounded-3 shadow-sm me-2" style="width: 32px; height: 32px; object-fit: cover;">
+            <span>Panel Admin</span>
         </div>
-        <div class="list-group list-group-flush mt-2 px-3 gap-1">
-            <a href="#" class="list-group-item active" onclick="adminApp.switchSection('dashboard', this)">
-                <i class="fa-solid fa-house"></i> Dashboard
+        <div class="list-group list-group-flush pt-2">
+            <a href="javascript:void(0)" class="list-group-item active" onclick="adminApp.switchSection('dashboard', this)">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
             </a>
-            <a href="#" class="list-group-item" onclick="adminApp.switchSection('merchant', this)">
+            <a href="javascript:void(0)" class="list-group-item" onclick="adminApp.switchSection('merchant', this)">
                 <i class="fa-solid fa-store"></i> Kelola Stan
             </a>
-            <a href="#" class="list-group-item" onclick="adminApp.switchSection('pesanan', this)">
-                <i class="fa-solid fa-shopping-cart"></i> Pesanan
+            <a href="javascript:void(0)" class="list-group-item" onclick="adminApp.switchSection('pesanan', this)">
+                <i class="fa-solid fa-receipt"></i> Pesanan Masuk
             </a>
-            <a href="#" class="list-group-item" onclick="adminApp.switchSection('banner', this)">
-                <i class="fa-solid fa-image"></i> Banner
+            <a href="javascript:void(0)" class="list-group-item" onclick="adminApp.switchSection('banner', this)">
+                <i class="fa-solid fa-images"></i> Banner Promosi
             </a>
-            <a href="#" class="list-group-item" onclick="adminApp.switchSection('pengaturan', this)">
-                <i class="fa-solid fa-gear"></i> Pengaturan
+            <a href="javascript:void(0)" class="list-group-item" onclick="adminApp.switchSection('pengaturan', this)">
+                <i class="fa-solid fa-sliders"></i> Pengaturan Tarif
             </a>
-            <div style="flex-grow: 1;"></div> 
-            <a href="javascript:void(0)" class="list-group-item text-danger mb-3" onclick="adminApp.logout()">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar Web
+            <hr class="my-2 opacity-25">
+            <a href="javascript:void(0)" class="list-group-item text-danger" onclick="adminApp.logout()">
+                <i class="fa-solid fa-arrow-right-from-bracket text-danger"></i> Logout
             </a>
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN CONTENT AREA -->
     <div id="page-content-wrapper">
-        <nav class="navbar admin-navbar d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <button class="btn border-0 me-3 rounded-3 px-3 py-2 menu-btn" id="menu-toggle">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <h4 class="m-0 fw-bold fs-5" id="pageTitle">Dashboard</h4>
-            </div>
-            <div>
-                <span class="badge rounded-pill px-3 py-2 fw-semibold" style="background: #e0e5f2; color: #4318ff;">
-                    <i class="fa-solid fa-user-shield me-1"></i> Admin
-                </span>
+        <!-- TOPBAR NAVBAR -->
+        <nav class="navbar admin-navbar sticky-top">
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn menu-btn border-0 px-3 py-2" id="menu-toggle">
+                        <i class="fa-solid fa-bars fs-6"></i>
+                    </button>
+                    <h5 class="fw-bold mb-0 text-dark" id="pageTitle">Dashboard Overview</h5>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-semibold">Admin Active</span>
+                </div>
             </div>
         </nav>
 
-        <!-- 1. SECTION: DASHBOARD -->
-        <div id="section-dashboard" class="section-content">
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-md-4">
-                    <div class="stat-card h-100">
-                        <div class="stat-icon" style="background: #eef2ff; color: #4318ff;"><i class="fa-solid fa-shopping-bag"></i></div>
-                        <div class="stat-details">
-                            <h3 id="stat-orders">0</h3>
-                            <h6>TOTAL PESANAN</h6>
+        <div class="container-fluid p-0">
+            
+            <!-- 1. DASHBOARD OVERVIEW SECTION -->
+            <div id="section-dashboard" class="section-content">
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="stat-card">
+                            <div class="stat-icon bg-primary-subtle text-primary">
+                                <i class="fa-solid fa-cart-shopping"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h3 id="stat-orders">0</h3>
+                                <h6>Total Pesanan</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="stat-card">
+                            <div class="stat-icon bg-success-subtle text-success">
+                                <i class="fa-solid fa-store"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h3 id="stat-merchants">0</h3>
+                                <h6>Stan Terdaftar</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="stat-card">
+                            <div class="stat-icon bg-warning-subtle text-warning">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h3 id="stat-revenue">Rp 0</h3>
+                                <h6>Estimasi Layanan</h6>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-md-4">
-                    <div class="stat-card h-100">
-                        <div class="stat-icon" style="background: #dcfce7; color: #15803d;"><i class="fa-solid fa-wallet"></i></div>
-                        <div class="stat-details">
-                            <h3 id="stat-revenue">Rp 0</h3>
-                            <h6>PENDAPATAN ADMIN WEB</h6>
+            </div>
+
+            <!-- 2. KELOLA STAN SECTION -->
+            <div id="section-merchant" class="section-content" style="display: none;">
+                <div class="premium-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-store me-2 text-primary"></i>Daftar Stan / Merchant</h6>
+                        <button class="btn btn-primary btn-sm fw-bold rounded-pill px-3" onclick="adminApp.openStanModal()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Stan
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Foto</th>
+                                    <th>Nama Stan</th>
+                                    <th>Alamat</th>
+                                    <th>Jam Operasional</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableMerchants">
+                                <!-- Dimuat via admin.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. PESANAN MASUK SECTION -->
+            <div id="section-pesanan" class="section-content" style="display: none;">
+                <div class="premium-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-receipt me-2 text-primary"></i>Riwayat Pesanan Masuk</h6>
+                        <button class="btn btn-outline-danger btn-sm fw-bold rounded-pill px-3" onclick="adminApp.deleteAllAdminOrders()">
+                            <i class="fa-solid fa-trash me-1"></i> Kosongkan Pesanan
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>ID Order</th>
+                                    <th>Tanggal</th>
+                                    <th>Pemesan</th>
+                                    <th>Stan</th>
+                                    <th>Total Tagihan</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableOrders">
+                                <!-- Dimuat via admin.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. BANNER PROMOSI SECTION -->
+            <div id="section-banner" class="section-content" style="display: none;">
+                <div class="premium-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-images me-2 text-primary"></i>Banner Promosi Slider</h6>
+                        <button class="btn btn-primary btn-sm fw-bold rounded-pill px-3" onclick="adminApp.openBannerModal()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Banner
+                        </button>
+                    </div>
+                    <div id="bannerContainer" class="row g-3">
+                        <!-- Dimuat via admin.js -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. PENGATURAN TARIF & SISTEM SECTION -->
+            <div id="section-pengaturan" class="section-content" style="display: none;">
+                <div class="premium-card" style="max-width: 600px;">
+                    <h5 class="fw-bold text-primary mb-4"><i class="fa-solid fa-sliders me-2"></i>Pengaturan Tarif & WhatsApp</h5>
+                    <form id="formPengaturan">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nomor WhatsApp Admin</label>
+                            <input type="text" id="setWa" class="form-control" required placeholder="08xxxxxxxxxx">
                         </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-4">
-                    <div class="stat-card h-100">
-                        <div class="stat-icon" style="background: #fef3c7; color: #d97706;"><i class="fa-solid fa-store"></i></div>
-                        <div class="stat-details">
-                            <h3 id="stat-merchants">0</h3>
-                            <h6>STAN AKTIF</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Ongkir Minimum (Rp)</label>
+                                <input type="number" id="setMin" class="form-control" placeholder="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Ongkir Maksimum (Rp)</label>
+                                <input type="number" id="setMax" class="form-control" placeholder="0">
+                            </div>
                         </div>
-                    </div>
+                        <div class="row g-2 mb-4">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Biaya Layanan (Rp)</label>
+                                <input type="number" id="setService" class="form-control" placeholder="1000" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Tarif Ongkir per KM (Rp)</label>
+                                <input type="number" id="setShippingRate" class="form-control" placeholder="3000" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Simpan Pengaturan</button>
+                    </form>
                 </div>
             </div>
-        </div>
 
-        <!-- 2. SECTION: MERCHANT / STAN -->
-        <div id="section-merchant" class="section-content" style="display:none;">
-            <div class="premium-card">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold m-0"><i class="fa-solid fa-store me-2 text-primary"></i> Kelola Stan / Merchant</h5>
-                    <button class="btn btn-primary fw-semibold px-4 rounded-3" onclick="adminApp.openStanModal()"><i class="fa-solid fa-plus me-2"></i> Tambah Stan</button>
-                </div>
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Foto</th>
-                                <th>Nama Stan</th>
-                                <th>Alamat</th>
-                                <th>Jam Buka</th>
-                                <th>Status</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableMerchants"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 3. SECTION: PESANAN -->
-        <div id="section-pesanan" class="section-content" style="display:none;">
-            <div class="premium-card">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-shopping-cart me-2 text-primary"></i> Data Pesanan Masuk</h5>
-                    <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" onclick="adminApp.deleteAllAdminOrders()">
-                        <i class="fa-solid fa-trash-can me-1"></i> Hapus Semua Pesanan
-                    </button>
-                </div>
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr>
-                                <th>ID Order</th>
-                                <th>Tanggal</th>
-                                <th>Pelanggan</th>
-                                <th>Stan</th>
-                                <th>Total</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableOrders"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. SECTION: BANNER -->
-        <div id="section-banner" class="section-content" style="display:none;">
-            <div class="premium-card">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold m-0"><i class="fa-solid fa-image me-2 text-primary"></i> Banner Promosi Slider</h5>
-                    <button class="btn btn-primary fw-semibold px-4 rounded-3" onclick="adminApp.openBannerModal()"><i class="fa-solid fa-upload me-2"></i> Tambah Banner</button>
-                </div>
-                <div class="row g-3" id="bannerContainer"></div>
-            </div>
-        </div>
-
-        <!-- 5. SECTION: PENGATURAN -->
-        <div id="section-pengaturan" class="section-content" style="display:none;">
-            <div class="premium-card mx-auto" style="max-width: 700px;">
-                <h5 class="fw-bold mb-4"><i class="fa-solid fa-gear me-2 text-primary"></i> Pengaturan Tarif & Sistem</h5>
-                <form id="formPengaturan">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Nomor WhatsApp Admin (Penerima Pesanan)</label>
-                        <input type="text" id="setWa" class="form-control" required placeholder="628xxxxxxxxxx">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Tarif Ongkir per KM (Rp)</label>
-                        <input type="number" id="setShippingRate" class="form-control" required placeholder="Contoh: 3000">
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6"><label class="form-label small fw-bold">Minimum Fee (Rp)</label><input type="number" id="setMin" class="form-control" required></div>
-                        <div class="col-6"><label class="form-label small fw-bold">Maximum Fee (Rp)</label><input type="number" id="setMax" class="form-control" required></div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Biaya Layanan Web</label>
-                        <input type="number" id="setService" class="form-control" readonly style="background-color: #e9ecef; cursor: not-allowed;" title="Biaya layanan bersifat tetap dan tidak dapat diubah">
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-semibold py-2 mt-3">Simpan Pengaturan</button>
-                </form>
-            </div>
         </div>
     </div>
 </div>
@@ -192,7 +233,7 @@
 <!-- MODAL TAMBAH / EDIT STAN -->
 <div class="modal fade" id="modalStan" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow rounded-4 p-3">
+    <div class="modal-content p-3">
       <div class="modal-header border-bottom-0">
         <h5 class="modal-title fw-bold" id="modalStanTitle">Tambah Stan / Merchant Baru</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -207,7 +248,7 @@
                 <input type="text" id="stanNama" class="form-control" required placeholder="Contoh: Nasi Goreng Spesial">
             </div>
 
-            <!-- KATEGORI STAN DENGAN DATALIST (Bisa Pilih & Ketik Manual) -->
+            <!-- KATEGORI STAN DENGAN DATALIST -->
             <div class="mb-3">
                 <label class="form-label small fw-bold">Kategori Stan</label>
                 <input type="text" class="form-control" id="stanCategory" list="categoryList" placeholder="Pilih atau ketik kategori baru..." required>
@@ -220,10 +261,26 @@
                 </datalist>
             </div>
             
+            <!-- KONTROL 3 FOTO STAN TERPISAH (RESPONSIF MOBILE & DESKTOP) -->
             <div class="mb-3">
-                <label class="form-label small fw-bold">Foto Stan (Opsional - Pilih dari HP)</label>
-                <input type="file" id="stanFile" class="form-control" accept="image/*">
-                <div class="form-text small text-muted">Kosongkan jika tidak ingin mengubah/menambah foto.</div>
+                <label class="form-label small fw-bold">Foto Stan (Maksimal 3 Foto)</label>
+                <div class="row g-2">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-muted small mb-1" style="font-size: 0.75rem;">Foto 1</label>
+                        <input type="file" id="stanFile1" class="form-control form-control-sm" accept="image/*" onchange="adminApp.handleFileInput(this, 0)">
+                        <div id="previewBox0" class="mt-2"></div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-muted small mb-1" style="font-size: 0.75rem;">Foto 2</label>
+                        <input type="file" id="stanFile2" class="form-control form-control-sm" accept="image/*" onchange="adminApp.handleFileInput(this, 1)">
+                        <div id="previewBox1" class="mt-2"></div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-muted small mb-1" style="font-size: 0.75rem;">Foto 3</label>
+                        <input type="file" id="stanFile3" class="form-control form-control-sm" accept="image/*" onchange="adminApp.handleFileInput(this, 2)">
+                        <div id="previewBox2" class="mt-2"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -256,7 +313,7 @@
 <!-- MODAL BANNER -->
 <div class="modal fade" id="modalBanner" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow rounded-4 p-3">
+    <div class="modal-content p-3">
       <div class="modal-header border-bottom-0">
         <h5 class="modal-title fw-bold" id="modalBannerTitle">Tambah Banner Slider</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -264,18 +321,20 @@
       <div class="modal-body">
         <form id="formBanner" onsubmit="adminApp.saveBanner(event)">
             <input type="hidden" id="bannerId">
+
             <div class="mb-3">
-                <label class="form-label small fw-bold">URL Gambar Banner <span class="text-muted fw-normal">(Rekomendasi: 1200 x 600 px)</span></label>
-                <input type="url" id="bannerUrlInput" class="form-control" placeholder="https://..." required>
+                <label class="form-label small fw-bold">URL Gambar Banner</label>
+                <input type="url" id="bannerUrlInput" class="form-control" required placeholder="https://...">
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Judul Banner (Custom)</label>
-                <input type="text" id="bannerTitleInput" class="form-control" placeholder="Contoh: PROMO MAKANAN SIANG">
+                <label class="form-label small fw-bold">Judul Banner (Opsional)</label>
+                <input type="text" id="bannerTitleInput" class="form-control" placeholder="Contoh: PROMO SPESIAL">
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Subjudul / Keterangan (Custom)</label>
-                <input type="text" id="bannerSubtitleInput" class="form-control" placeholder="Contoh: DISKON ONGKIR HINGGA 50%">
+                <label class="form-label small fw-bold">Subjudul Banner (Opsional)</label>
+                <input type="text" id="bannerSubtitleInput" class="form-control" placeholder="Contoh: Diskon s/d 50%">
             </div>
+
             <button type="submit" id="btnBannerSubmit" class="btn btn-primary w-100 fw-semibold py-2">Upload Banner</button>
         </form>
       </div>
@@ -283,12 +342,11 @@
   </div>
 </div>
 
-<!-- Scripts -->
+<!-- External Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="js/admin.js"></script>
-
 </body>
 </html>

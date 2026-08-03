@@ -191,12 +191,24 @@ body.app-body {
 }
 
 /* Dots Banner */
+.banner-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
 .dot {
-  width: 8px; height: 8px;
+  width: 8px; 
+  height: 8px;
   border-radius: 50%;
   background: #C7C7CC;
   transition: var(--ios-transition);
+  cursor: pointer;
 }
+
 .dot.active {
   width: 24px;
   border-radius: 4px;
@@ -211,8 +223,16 @@ body.app-body {
   overflow: hidden;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Trek pembungkus slider horizontal */
+.banner-slider {
+  display: flex;
+  width: 100%;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
 }
 
 .banner-card-item {
@@ -222,7 +242,7 @@ body.app-body {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-  background-color: #f8f9fa;
+  background-color: #eef2f5; /* Placeholder latar belakang saat loading */
 }
 
 .banner-card-item img {
@@ -237,7 +257,7 @@ body.app-body {
 .banner-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%);
+  background: transparent;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;

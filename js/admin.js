@@ -1,5 +1,5 @@
 /**
- * JASTIP SAWOO - ADMIN JS (Optional Photo Upload, Edit & Maps)
+ * JASTIP SAWOO - ADMIN JS (3 Independent File Inputs & Base64 Fix)
  */
 
 const SUPABASE_URL = 'https://lxqpbpzsufgnjmimbaly.supabase.co';
@@ -12,14 +12,18 @@ const adminApp = {
         merchants: [],
         orders: [],
         banners: [],
-        settings: {}
+        settings: {},
+        currentPhotos: ['', '', ''] // Array penampung 3 foto [Foto1, Foto2, Foto3]
     },
+
+    mapInstance: null,
+    mapMarker: null,
 
     async init() {
         this.setupSidebarToggle();
+        this.renderTableSkeletons();
         await this.fetchAllData();
         this.setupEventListeners();
-        this.initLeafletMap();
     },
 
     logout() {
@@ -58,154 +62,37 @@ const adminApp = {
         }
     },
 
-    // Hapus 1 pesanan berdasarkan ID dengan password khusus (Input teks biasa)
-    async deleteAdminOrder(orderId) {
-        const { value: passwordInput, isConfirmed } = await Swal.fire({
-            title: 'Konfirmasi Penghapusan',
-            text: 'Masukkan password khusus untuk menghapus pesanan ini:',
-            input: 'text',
-            inputPlaceholder: 'Ketik password di sini...',
-            showCancelButton: true,
-            confirmButtonText: 'Hapus',
-            cancelButtonText: 'Batal',
-            confirmButtonColor: '#FF3B30',
-            cancelButtonColor: '#8E8E93',
-            customClass: {
-                popup: 'rounded-4 shadow-lg border-0'
-            }
-        });
-
-        if (!isConfirmed) return;
-
-        const SPECIAL_PASSWORD = "koirul07";
-
-        if (passwordInput !== SPECIAL_PASSWORD) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Akses Ditolak',
-                text: 'Password khusus salah! Penghapusan dibatalkan.',
-                confirmButtonColor: '#007AFF',
-                customClass: { popup: 'rounded-4' }
-            });
-            return;
+    renderTableSkeletons() {
+        const tbodyM = document.getElementById('tableMerchants');
+        if (tbodyM) {
+            tbodyM.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>Memuat data stan...</td></tr>`;
         }
-
-        try {
-            const { error } = await dbClient
-                .from('orders')
-                .delete()
-                .eq('id', orderId);
-
-            if (error) throw error;
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Terhapus!',
-                text: 'Pesanan berhasil dihapus dari database.',
-                timer: 1800,
-                showConfirmButton: false,
-                customClass: { popup: 'rounded-4' }
-            });
-            
-            this.fetchAllData();
-        } catch (err) {
-            console.error("Gagal menghapus pesanan:", err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal',
-                text: 'Gagal menghapus pesanan dari server.',
-                confirmButtonColor: '#007AFF',
-                customClass: { popup: 'rounded-4' }
-            });
+        const tbodyO = document.getElementById('tableOrders');
+        if (tbodyO) {
+            tbodyO.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>Memuat data pesanan...</td></tr>`;
         }
     },
 
-    // Hapus SEMUA pesanan dengan password khusus
-    async deleteAllAdminOrders() {
-        const { value: passwordInput, isConfirmed } = await Swal.fire({
-            title: '⚠️ Peringatan Ekstrem',
-            text: 'Masukkan password khusus untuk menghapus SEMUA pesanan:',
-            input: 'text',
-            inputPlaceholder: 'Ketik password di sini...',
-            showCancelButton: true,
-            confirmButtonText: 'Hapus Semua',
-            cancelButtonText: 'Batal',
-            confirmButtonColor: '#FF3B30',
-            cancelButtonColor: '#8E8E93',
-            customClass: {
-                popup: 'rounded-4 shadow-lg border-0'
-            }
-        });
-
-        if (!isConfirmed) return;
-
-        const SPECIAL_PASSWORD = "koirul07";
-
-        if (passwordInput !== SPECIAL_PASSWORD) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Akses Ditolak',
-                text: 'Password khusus salah! Penghapusan massal dibatalkan.',
-                confirmButtonColor: '#007AFF',
-                customClass: { popup: 'rounded-4' }
-            });
-            return;
+    // Helper Parse String Foto Aman dari Pemisahan Base64
+    parsePhotoString(str) {
+        if (!str) return [];
+        if (str.includes('|||')) {
+            return str.split('|||').map(s => s.trim()).filter(Boolean);
         }
-
-        try {
-            const { data: allOrders, error: fetchError } = await dbClient.from('orders').select('id');
-            if (fetchError) throw fetchError;
-
-            if (!allOrders || allOrders.length === 0) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Kosong',
-                    text: 'Tidak ada pesanan yang tersisa.',
-                    confirmButtonColor: '#007AFF',
-                    customClass: { popup: 'rounded-4' }
-                });
-                return;
-            }
-
-            const idsToDelete = allOrders.map(o => o.id);
-
-            const { error } = await dbClient
-                .from('orders')
-                .delete()
-                .in('id', idsToDelete);
-
-            if (error) throw error;
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil Dikosongkan!',
-                text: 'Semua daftar pesanan berhasil dikosongkan.',
-                timer: 1800,
-                showConfirmButton: false,
-                customClass: { popup: 'rounded-4' }
-            });
-            
-            this.fetchAllData();
-        } catch (err) {
-            console.error("Gagal mengosongkan pesanan:", err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal',
-                text: 'Gagal mengosongkan data pesanan: ' + err.message,
-                confirmButtonColor: '#007AFF',
-                customClass: { popup: 'rounded-4' }
-            });
+        if (str.includes('data:image/')) {
+            const matches = str.match(/data:image\/[^;]+;base64,[^|,]+/g);
+            if (matches && matches.length > 0) return matches;
         }
+        return str.split(',').map(s => s.trim()).filter(Boolean);
     },
 
     async fetchAllData() {
-        Swal.fire({ title: 'Memuat data...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
         try {
             const [mRes, oRes, bRes, sRes] = await Promise.all([
-                dbClient.from('merchants').select('*').order('id', { ascending: false }),
-                dbClient.from('orders').select('*').order('date', { ascending: false }),
-                dbClient.from('banners').select('*').order('id', { ascending: false }),
-                dbClient.from('settings').select('*').eq('id', 1).maybeSingle()
+                dbClient.from('merchants').select('id, nama, name, alamat, jam_buka, hours, foto, img, category, latitude, lat, longitude, lng').order('id', { ascending: false }),
+                dbClient.from('orders').select('id, date, customer, merchant, total').order('date', { ascending: false }),
+                dbClient.from('banners').select('id, url, title, subtitle').order('id', { ascending: false }),
+                dbClient.from('settings').select('admin_whatsapp, minimum_fee, maximum_fee, service_fee, shipping_rate_per_km').eq('id', 1).maybeSingle()
             ]);
 
             this.state.merchants = mRes.data || [];
@@ -222,9 +109,8 @@ const adminApp = {
             this.renderBanners();
             this.updateCategoryDatalist();
 
-            Swal.close();
         } catch (err) {
-            Swal.fire('Error', 'Gagal memuat data dari database: ' + err.message, 'error');
+            console.error('Gagal memuat data admin:', err);
         }
     },
 
@@ -243,7 +129,7 @@ const adminApp = {
         document.getElementById('stat-orders').innerText = this.state.orders.length;
         document.getElementById('stat-merchants').innerText = this.state.merchants.length;
         
-        const feePerOrder = Number(this.state.settings.service_fee || '');
+        const feePerOrder = Number(this.state.settings.service_fee || 0);
         const totalRevenue = this.state.orders.length * feePerOrder;
         document.getElementById('stat-revenue').innerText = `Rp ${totalRevenue.toLocaleString('id-ID')}`;
     },
@@ -270,9 +156,19 @@ const adminApp = {
             return;
         }
 
-        tbody.innerHTML = this.state.merchants.map(m => `
+        tbody.innerHTML = this.state.merchants.map(m => {
+            const images = this.parsePhotoString(m.foto || m.img || '');
+            const firstImg = images[0] || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200';
+            const imgCount = images.length;
+
+            return `
             <tr>
-                <td><img src="${m.foto || m.img || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200'}" class="rounded-3" style="width:40px; height:40px; object-fit:cover;"></td>
+                <td>
+                    <div class="position-relative d-inline-block">
+                        <img src="${firstImg}" class="rounded-3" style="width:40px; height:40px; object-fit:cover; background-color:#f8f9fa;" loading="lazy">
+                        ${imgCount > 1 ? `<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style="font-size:0.55rem;">${imgCount}</span>` : ''}
+                    </div>
+                </td>
                 <td class="fw-bold">${m.nama || m.name}</td>
                 <td><small class="text-muted">${m.alamat || '-'}</small></td>
                 <td>${m.jam_buka || m.hours || '08:00 - 21:00'}</td>
@@ -282,17 +178,24 @@ const adminApp = {
                     <button class="btn btn-sm btn-light text-danger rounded-3" onclick="adminApp.deleteMerchant(${m.id})"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     },
 
     openStanModal() {
         document.getElementById('formStan').reset();
         document.getElementById('stanId').value = '';
         document.getElementById('stanFotoExisting').value = '';
+        this.resetFileInputs();
+        this.state.currentPhotos = ['', '', ''];
+        this.renderPhotoPreviews();
+
         document.getElementById('modalStanTitle').innerText = 'Tambah Stan / Merchant Baru';
         new bootstrap.Modal(document.getElementById('modalStan')).show();
+
         setTimeout(() => {
-            if (this.mapInstance) this.mapInstance.invalidateSize();
+            this.ensureMapInitialized();
+            this.setMarkerPosition(-7.8543, 111.4678, 15);
         }, 300);
     },
 
@@ -307,22 +210,80 @@ const adminApp = {
         document.getElementById('stanLng').value = m.longitude || m.lng || '111.4678';
         document.getElementById('stanBuka').value = m.jam_buka || m.hours?.split(' - ')[0] || '08:00';
         document.getElementById('stanTutup').value = m.jam_tutup || m.hours?.split(' - ')[1] || '21:00';
-        document.getElementById('stanFotoExisting').value = m.foto || m.img || '';
+
+        const existingFotoStr = m.foto || m.img || '';
+        document.getElementById('stanFotoExisting').value = existingFotoStr;
         document.getElementById('stanCategory').value = m.category || 'Makanan';
+
+        this.resetFileInputs();
+        const parsed = this.parsePhotoString(existingFotoStr);
+        this.state.currentPhotos = [
+            parsed[0] || '',
+            parsed[1] || '',
+            parsed[2] || ''
+        ];
+        this.renderPhotoPreviews();
 
         document.getElementById('modalStanTitle').innerText = 'Edit Stan / Merchant';
         new bootstrap.Modal(document.getElementById('modalStan')).show();
 
         setTimeout(() => {
-            if (this.mapInstance) {
-                this.mapInstance.invalidateSize();
-                const lat = parseFloat(document.getElementById('stanLat').value);
-                const lng = parseFloat(document.getElementById('stanLng').value);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    this.setMarkerPosition(lat, lng, 16);
-                }
+            this.ensureMapInitialized();
+            const lat = parseFloat(document.getElementById('stanLat').value);
+            const lng = parseFloat(document.getElementById('stanLng').value);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                this.setMarkerPosition(lat, lng, 16);
             }
         }, 300);
+    },
+
+    resetFileInputs() {
+        for (let i = 1; i <= 3; i++) {
+            const input = document.getElementById(`stanFile${i}`);
+            if (input) input.value = '';
+        }
+    },
+
+    // Memproses Input File Terpisah
+    async handleFileInput(input, index) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const compressedBase64 = await this.compressImage(file);
+        this.state.currentPhotos[index] = compressedBase64;
+        this.renderPhotoPreviews();
+    },
+
+    // Render Pratinjau Foto pada Masing-Masing Box
+    renderPhotoPreviews() {
+        for (let i = 0; i < 3; i++) {
+            const container = document.getElementById(`previewBox${i}`);
+            if (!container) continue;
+
+            const url = this.state.currentPhotos[i];
+            if (url) {
+                container.innerHTML = `
+                    <div class="position-relative d-inline-block" style="width:100%; height:75px;">
+                        <img src="${url}" class="rounded-3 border shadow-sm w-100 h-100" style="object-fit:cover;">
+                        <button type="button" 
+                                class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0 d-flex align-items-center justify-content-center shadow" 
+                                style="width:20px; height:20px; font-size:11px;" 
+                                onclick="adminApp.removeSinglePhoto(${i})" title="Hapus foto ini">
+                            &times;
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+    },
+
+    // Hapus Foto pada Kolom Tertentu
+    removeSinglePhoto(index) {
+        this.state.currentPhotos[index] = '';
+        const input = document.getElementById(`stanFile${index + 1}`);
+        if (input) input.value = '';
+        this.renderPhotoPreviews();
     },
 
     renderOrders() {
@@ -360,7 +321,7 @@ const adminApp = {
         container.innerHTML = this.state.banners.map(b => `
             <div class="col-12 col-md-4">
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                    <img src="${b.url}" style="height: 120px; object-fit: cover;">
+                    <img src="${b.url}" style="height: 120px; object-fit: cover;" loading="lazy">
                     <div class="card-body p-2 d-flex justify-content-between align-items-center">
                         <span class="small fw-bold text-truncate text-muted">${b.title || 'Banner'}</span>
                         <div>
@@ -474,6 +435,75 @@ const adminApp = {
         }
     },
 
+    async deleteAdminOrder(orderId) {
+        const { value: passwordInput, isConfirmed } = await Swal.fire({
+            title: 'Konfirmasi Penghapusan',
+            text: 'Masukkan password khusus untuk menghapus pesanan ini:',
+            input: 'text',
+            inputPlaceholder: 'Ketik password di sini...',
+            showCancelButton: true,
+            confirmButtonText: 'Hapus',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#FF3B30',
+            cancelButtonColor: '#8E8E93',
+            customClass: { popup: 'rounded-4 shadow-lg border-0' }
+        });
+
+        if (!isConfirmed) return;
+
+        if (passwordInput !== "koirul07") {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Password khusus salah!', confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
+            return;
+        }
+
+        try {
+            const { error } = await dbClient.from('orders').delete().eq('id', orderId);
+            if (error) throw error;
+            Swal.fire({ icon: 'success', title: 'Terhapus!', text: 'Pesanan berhasil dihapus.', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
+            this.fetchAllData();
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
+        }
+    },
+
+    async deleteAllAdminOrders() {
+        const { value: passwordInput, isConfirmed } = await Swal.fire({
+            title: '⚠️ Peringatan Ekstrem',
+            text: 'Masukkan password khusus untuk menghapus SEMUA pesanan:',
+            input: 'text',
+            inputPlaceholder: 'Ketik password di sini...',
+            showCancelButton: true,
+            confirmButtonText: 'Hapus Semua',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#FF3B30',
+            cancelButtonColor: '#8E8E93',
+            customClass: { popup: 'rounded-4 shadow-lg border-0' }
+        });
+
+        if (!isConfirmed) return;
+
+        if (passwordInput !== "koirul07") {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Password salah!', confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
+            return;
+        }
+
+        try {
+            const { data: allOrders, error: fetchError } = await dbClient.from('orders').select('id');
+            if (fetchError) throw fetchError;
+
+            if (!allOrders || allOrders.length === 0) return;
+
+            const idsToDelete = allOrders.map(o => o.id);
+            const { error } = await dbClient.from('orders').delete().in('id', idsToDelete);
+            if (error) throw error;
+
+            Swal.fire({ icon: 'success', title: 'Dikosongkan!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
+            this.fetchAllData();
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
+        }
+    },
+
     setupEventListeners() {
         const formPengaturan = document.getElementById('formPengaturan');
         if (formPengaturan) {
@@ -504,7 +534,7 @@ const adminApp = {
                     Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Pengaturan berhasil diupdate!', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-4' } });
                     this.fetchAllData();
                 } catch (err) {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menyimpan data: ' + err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, confirmButtonColor: '#007AFF', customClass: { popup: 'rounded-4' } });
                 } finally {
                     btn.innerText = originalText;
                 }
@@ -527,8 +557,6 @@ const adminApp = {
                     const lng = parseFloat(document.getElementById('stanLng').value);
                     const buka = document.getElementById('stanBuka').value;
                     const tutup = document.getElementById('stanTutup').value;
-                    const existingFoto = document.getElementById('stanFotoExisting').value;
-                    const fileInput = document.getElementById('stanFile');
                     const kategoriElement = document.getElementById('stanCategory') || document.getElementById('merchantCategory');
                     const kategori = kategoriElement ? kategoriElement.value : 'Makanan';
 
@@ -536,10 +564,11 @@ const adminApp = {
                         throw new Error("Silakan tentukan titik lokasi pada peta terlebih dahulu.");
                     }
 
-                    let fotoFinal = existingFoto || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600';
-                    if (fileInput.files && fileInput.files[0]) {
-                        fotoFinal = await this.toBase64(fileInput.files[0]);
-                    }
+                    // Ambil foto-foto aktif dan gabung dengan pemisah '|||'
+                    const activePhotos = this.state.currentPhotos.filter(Boolean);
+                    let fotoFinal = activePhotos.length > 0 
+                        ? activePhotos.join('|||') 
+                        : 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600';
 
                     const payload = {
                         nama: nama,
@@ -578,49 +607,52 @@ const adminApp = {
         }
     },
 
-    toBase64(file) {
+    compressImage(file, maxWidth = 600, quality = 0.7) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = error => reject(error);
+            };
             reader.onerror = error => reject(error);
         });
     },
 
-    setMarkerPosition(lat, lng, zoom = 16) {
-        document.getElementById('stanLat').value = lat;
-        document.getElementById('stanLng').value = lng;
-        if (this.mapInstance) {
-            this.mapInstance.setView([lat, lng], zoom);
-            if (this.mapMarker) {
-                this.mapMarker.setLatLng([lat, lng]);
-            } else {
-                this.mapMarker = L.marker([lat, lng], { draggable: true }).addTo(this.mapInstance);
-                this.mapMarker.on('dragend', () => {
-                    const pos = this.mapMarker.getLatLng();
-                    document.getElementById('stanLat').value = pos.lat;
-                    document.getElementById('stanLng').value = pos.lng;
-                });
-            }
-        }
-    },
-
-    initLeafletMap() {
-        const defaultLat = -7.8543;
-        const defaultLng = 111.4678;
-
+    ensureMapInitialized() {
         const mapContainer = document.getElementById('interactiveMap');
-        if (mapContainer && typeof L !== 'undefined') {
-            const map = L.map('interactiveMap').setView([defaultLat, defaultLng], 15);
-            this.mapInstance = map;
+        if (!mapContainer || typeof L === 'undefined') return;
 
+        if (!this.mapInstance) {
+            const defaultLat = -7.8543;
+            const defaultLng = 111.4678;
+
+            this.mapInstance = L.map('interactiveMap').setView([defaultLat, defaultLng], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+            }).addTo(this.mapInstance);
 
-            map.on('click', (e) => {
-                this.setMarkerPosition(e.latlng.lat, e.latlng.lng, map.getZoom());
+            this.mapInstance.on('click', (e) => {
+                this.setMarkerPosition(e.latlng.lat, e.latlng.lng, this.mapInstance.getZoom());
             });
 
             const btnGetGps = document.getElementById('btnGetGps');
@@ -643,6 +675,25 @@ const adminApp = {
                         },
                         { enableHighAccuracy: true, timeout: 10000 }
                     );
+                });
+            }
+        }
+        this.mapInstance.invalidateSize();
+    },
+
+    setMarkerPosition(lat, lng, zoom = 16) {
+        document.getElementById('stanLat').value = lat;
+        document.getElementById('stanLng').value = lng;
+        if (this.mapInstance) {
+            this.mapInstance.setView([lat, lng], zoom);
+            if (this.mapMarker) {
+                this.mapMarker.setLatLng([lat, lng]);
+            } else {
+                this.mapMarker = L.marker([lat, lng], { draggable: true }).addTo(this.mapInstance);
+                this.mapMarker.on('dragend', () => {
+                    const pos = this.mapMarker.getLatLng();
+                    document.getElementById('stanLat').value = pos.lat;
+                    document.getElementById('stanLng').value = pos.lng;
                 });
             }
         }
