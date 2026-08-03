@@ -162,7 +162,9 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-light text-primary fw-bold mb-3" onclick="app.addOrderItemRow()">+ Tambah Item Menu</button>
+                <button type="button" class="btn btn-sm btn-light text-primary fw-bold mb-3" onclick="app.addOrderItemRow()">
+    <span class="fs-4 fw-bold me-1">+</span> Tambah Menu
+</button>
 
                 <div class="mb-3">
                     <label class="form-label small fw-bold">Catatan Tambahan</label>
@@ -188,13 +190,13 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="button" id="btnTambahPesanan" class="btn btn-outline-primary w-50 fw-bold py-2" onclick="app.saveOrderFromForm()">
-                        <i class="fa-solid fa-cart-shopping me-2"></i>Tambah Pesanan
-                    </button>
-                    <button type="submit" class="btn btn-success w-50 fw-bold py-2">
-                        <i class="fa-brands fa-whatsapp me-2"></i>Kirim WhatsApp
-                    </button>
-                </div>
+    <button type="button" id="btnTambahPesanan" class="btn btn-outline-primary w-50 fw-bold py-2" onclick="app.saveOrderFromForm()">
+        <span class="fs-4 fw-bold me-1">+</span> <i class="fa-solid fa-cart-shopping me-1"></i> Pesanan
+    </button>
+    <button type="submit" class="btn btn-success w-50 fw-bold py-2">
+        <i class="fa-brands fa-whatsapp me-2"></i>WhatsApp
+    </button>
+</div>
             </form>
         </div>
       </div>
