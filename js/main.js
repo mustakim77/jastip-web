@@ -393,6 +393,20 @@ const app = {
             if (backBtn) backBtn.classList.remove('d-none');
 
             window.scrollTo(0, 0);
+
+            // --- AUTO-FILL NAMA & NO HP DARI SESI MEMBER ---
+            const session = JSON.parse(localStorage.getItem('jastipUser'));
+            if (session) {
+                const orderNameInput = document.getElementById('orderName');
+                const orderWaInput = document.getElementById('orderWa');
+                if (orderNameInput && !orderNameInput.value) {
+                    orderNameInput.value = session.username || '';
+                }
+                if (orderWaInput && !orderWaInput.value) {
+                    orderWaInput.value = session.phone || '';
+                }
+            }
+
             this.calculateInvoice();
         } catch (err) {
             console.error('Error openMerchantDetail:', err);
@@ -716,6 +730,20 @@ const app = {
         if (backBtn) backBtn.classList.remove('d-none');
 
         window.scrollTo(0, 0);
+
+        // --- AUTO-FILL NAMA & NO HP DARI SESI MEMBER ---
+        const session = JSON.parse(localStorage.getItem('jastipUser'));
+        if (session) {
+            const orderNameInput = document.getElementById('orderName');
+            const orderWaInput = document.getElementById('orderWa');
+            if (orderNameInput && !orderNameInput.value) {
+                orderNameInput.value = session.username || '';
+            }
+            if (orderWaInput && !orderWaInput.value) {
+                orderWaInput.value = session.phone || '';
+            }
+        }
+
         this.calculateInvoice();
     },
 
@@ -1081,19 +1109,24 @@ const app = {
 
     updateMemberUI() {
         const session = JSON.parse(localStorage.getItem('jastipUser'));
-        if (session) {
-            document.getElementById('memberGuestState')?.classList.add('d-none');
-            document.getElementById('memberLoginState')?.classList.add('d-none');
-            document.getElementById('memberRegisterState')?.classList.add('d-none');
-            document.getElementById('memberForgotPasswordState')?.classList.add('d-none');
-            document.getElementById('memberProfileState')?.classList.remove('d-none');
+        const tamuEl = document.getElementById('tampilanProfilTamu');
+        const akunEl = document.getElementById('akunContainer');
+        const dashEl = document.getElementById('memberDashboardView');
+        const passEl = document.getElementById('formGantiPassContainer');
 
-            const nameDisp = document.getElementById('profileNameDisplay');
-            const roleDisp = document.getElementById('profileRoleDisplay');
+        if (session) {
+            if (tamuEl) tamuEl.style.display = 'none';
+            if (akunEl) akunEl.style.display = 'none';
+            if (passEl) passEl.style.display = 'none';
+            if (dashEl) dashEl.style.display = 'block';
+
+            const nameDisp = document.getElementById('namaMemberLogin');
             if (nameDisp) nameDisp.innerText = session.username || session.name || 'Member';
-            if (roleDisp) roleDisp.innerText = session.role ? session.role.toUpperCase() : 'MEMBER';
         } else {
-            this.switchToGuest();
+            if (dashEl) dashEl.style.display = 'none';
+            if (akunEl) akunEl.style.display = 'none';
+            if (passEl) passEl.style.display = 'none';
+            if (tamuEl) tamuEl.style.display = 'block';
         }
     },
 
@@ -1209,5 +1242,276 @@ const app = {
         this.switchToGuest();
     }
 };
+
+// --- FUNGSI GLOBAL TAMBAHAN UNTUK NAVIGASI MEMBER & RESET VIA NOMOR HP ---
+
+function cekSecretLogin(url) {
+    window.location.href = url;
+}
+
+function bukaMenuDaftar() {
+    document.getElementById('tampilanProfilTamu').style.display = 'none';
+    document.getElementById('akunContainer').style.display = 'block';
+    document.getElementById('formLoginContainer').style.display = 'none';
+    document.getElementById('formDaftarContainer').style.display = 'block';
+    document.getElementById('formLupaPassContainer').style.display = 'none';
+}
+
+function bukaMenuLogin() {
+    document.getElementById('tampilanProfilTamu').style.display = 'none';
+    document.getElementById('akunContainer').style.display = 'block';
+    document.getElementById('formLoginContainer').style.display = 'block';
+    document.getElementById('formDaftarContainer').style.display = 'none';
+    document.getElementById('formLupaPassContainer').style.display = 'none';
+}
+
+function bukaFormLupaPassword() {
+    document.getElementById('formLoginContainer').style.display = 'none';
+    document.getElementById('formDaftarContainer').style.display = 'none';
+    document.getElementById('formLupaPassContainer').style.display = 'block';
+    const pesanReset = document.getElementById('pesanReset');
+    if (pesanReset) pesanReset.innerText = '';
+}
+
+function kembaliKeProfilTamu() {
+    document.getElementById('akunContainer').style.display = 'none';
+    document.getElementById('formGantiPassContainer').style.display = 'none';
+    document.getElementById('memberDashboardView').style.display = 'none';
+    document.getElementById('tampilanProfilTamu').style.display = 'block';
+}
+
+function tampilkanDaftar() {
+    document.getElementById('formLoginContainer').style.display = 'none';
+    document.getElementById('formLupaPassContainer').style.display = 'none';
+    document.getElementById('formDaftarContainer').style.display = 'block';
+}
+
+function tampilkanLogin() {
+    document.getElementById('formDaftarContainer').style.display = 'none';
+    document.getElementById('formLupaPassContainer').style.display = 'none';
+    document.getElementById('formLoginContainer').style.display = 'block';
+}
+
+function cekEnter(e) {
+    if (e.key === 'Enter') {
+        verifikasiLogin();
+    }
+}
+
+async function verifikasiLogin() {
+    const usernameInput = document.getElementById('username')?.value.trim();
+    const passwordInput = document.getElementById('password')?.value.trim();
+    const pesanEl = document.getElementById('pesanLogin');
+
+    if (!usernameInput || !passwordInput) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Username dan Password wajib diisi!'; }
+        return;
+    }
+
+    try {
+        const { data, error } = await dbClient
+            .from('profiles')
+            .select('*')
+            .eq('username', usernameInput)
+            .eq('password', passwordInput)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            localStorage.setItem('jastipUser', JSON.stringify(data));
+            if (pesanEl) { pesanEl.style.color = '#34C759'; pesanEl.innerText = 'Login berhasil!'; }
+            
+            if (data.role && data.role.toLowerCase() === 'admin') {
+                setTimeout(() => { window.location.href = 'admin.html'; }, 800);
+                return;
+            }
+
+            setTimeout(() => {
+                app.updateMemberUI();
+            }, 600);
+        } else {
+            if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Username atau Password salah!'; }
+        }
+    } catch (err) {
+        console.error('Login error:', err);
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Gagal login. Periksa koneksi.'; }
+    }
+}
+
+async function prosesDaftar() {
+    const phoneInput = document.getElementById('regPhone')?.value.trim();
+    const usernameInput = document.getElementById('regUsername')?.value.trim();
+    const passwordInput = document.getElementById('regPassword')?.value.trim();
+    const pesanEl = document.getElementById('pesanDaftar');
+
+    if (!phoneInput || !usernameInput || !passwordInput) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Nomor HP, Username, dan Password wajib diisi!'; }
+        return;
+    }
+
+    if (passwordInput.length < 6) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Password minimal 6 karakter!'; }
+        return;
+    }
+
+    try {
+        // Cek username kembar
+        const { data: existingUser } = await dbClient
+            .from('profiles')
+            .select('*')
+            .eq('username', usernameInput)
+            .maybeSingle();
+
+        if (existingUser) {
+            if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Username sudah terdaftar!'; }
+            return;
+        }
+
+        // Cek nomor HP kembar (pastikan tabel profiles punya kolom 'phone')
+        const { data: existingPhone } = await dbClient
+            .from('profiles')
+            .select('*')
+            .eq('phone', phoneInput)
+            .maybeSingle();
+
+        if (existingPhone) {
+            if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Nomor HP sudah terdaftar!'; }
+            return;
+        }
+
+        const { error } = await dbClient
+            .from('profiles')
+            .insert([{ 
+                phone: phoneInput, 
+                username: usernameInput, 
+                password: passwordInput, 
+                role: 'member' 
+            }]);
+
+        if (error) throw error;
+
+        if (pesanEl) { pesanEl.style.color = '#34C759'; pesanEl.innerText = 'Pendaftaran berhasil! Silakan login.'; }
+        setTimeout(() => {
+            tampilkanLogin();
+        }, 1200);
+    } catch (err) {
+        console.error('Register error:', err);
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Gagal mendaftar: ' + err.message; }
+    }
+}
+
+async function prosesResetPasswordViaNomor() {
+    const phoneInput = document.getElementById('resetPhone')?.value.trim();
+    const newPasswordInput = document.getElementById('resetNewPassword')?.value.trim();
+    const pesanEl = document.getElementById('pesanReset');
+
+    if (!phoneInput || !newPasswordInput) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Nomor HP dan Password Baru wajib diisi!'; }
+        return;
+    }
+
+    if (newPasswordInput.length < 6) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Password baru minimal 6 karakter!'; }
+        return;
+    }
+
+    try {
+        const { data: existingUser, error: checkError } = await dbClient
+            .from('profiles')
+            .select('*')
+            .eq('phone', phoneInput)
+            .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (!existingUser) {
+            if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Nomor HP tidak ditemukan di sistem!'; }
+            return;
+        }
+
+        const { error: updateError } = await dbClient
+            .from('profiles')
+            .update({ password: newPasswordInput })
+            .eq('phone', phoneInput);
+
+        if (updateError) throw updateError;
+
+        if (pesanEl) { 
+            pesanEl.style.color = '#34C759'; 
+            pesanEl.innerHTML = `Password berhasil direset!<br><small class="text-dark">Username Anda: <b>${existingUser.username}</b></small>`; 
+        }
+
+        setTimeout(() => {
+            tampilkanLogin();
+        }, 3000);
+
+    } catch (err) {
+        console.error('Reset password error:', err);
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Gagal mereset: ' + err.message; }
+    }
+}
+
+function bukaFormGantiPassword() {
+    document.getElementById('memberDashboardView').style.display = 'none';
+    document.getElementById('formGantiPassContainer').style.display = 'block';
+}
+
+function tutupFormGantiPassword() {
+    document.getElementById('formGantiPassContainer').style.display = 'none';
+    document.getElementById('memberDashboardView').style.display = 'block';
+}
+
+async function simpanPasswordBaru() {
+    const passLama = document.getElementById('passLama')?.value.trim();
+    const passBaru = document.getElementById('passBaru')?.value.trim();
+    const pesanEl = document.getElementById('pesanGantiPass');
+
+    if (!passLama || !passBaru) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Semua kolom wajib diisi!'; }
+        return;
+    }
+
+    const session = JSON.parse(localStorage.getItem('jastipUser'));
+    if (!session || !session.username) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Sesi tidak valid. Silakan login ulang.'; }
+        return;
+    }
+
+    if (passLama !== session.password) {
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Password lama salah!'; }
+        return;
+    }
+
+    try {
+        const { error } = await dbClient
+            .from('profiles')
+            .update({ password: passBaru })
+            .eq('username', session.username);
+
+        if (error) throw error;
+
+        session.password = passBaru;
+        localStorage.setItem('jastipUser', JSON.stringify(session));
+
+        if (pesanEl) { pesanEl.style.color = '#34C759'; pesanEl.innerText = 'Password berhasil diperbarui!'; }
+        document.getElementById('passLama').value = '';
+        document.getElementById('passBaru').value = '';
+
+        setTimeout(() => {
+            tutupFormGantiPassword();
+        }, 1200);
+    } catch (err) {
+        console.error('Ganti password error:', err);
+        if (pesanEl) { pesanEl.style.color = '#FF3B30'; pesanEl.innerText = 'Gagal memperbarui password: ' + err.message; }
+    }
+}
+
+function prosesLogout() {
+    localStorage.removeItem('jastipUser');
+    document.getElementById('memberDashboardView').style.display = 'none';
+    document.getElementById('tampilanProfilTamu').style.display = 'block';
+    app.showToast('Berhasil logout.');
+}
 
 document.addEventListener('DOMContentLoaded', () => app.init());

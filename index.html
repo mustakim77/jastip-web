@@ -163,8 +163,8 @@
                     </div>
                 </div>
                 <button type="button" class="btn btn-sm btn-light text-primary fw-bold mb-3" onclick="app.addOrderItemRow()">
-    <span class="fs-4 fw-bold me-1">+</span> Tambah Menu
-</button>
+                    <span class="fs-4 fw-bold me-1">+</span> Tambah Menu
+                </button>
 
                 <div class="mb-3">
                     <label class="form-label small fw-bold">Catatan Tambahan</label>
@@ -190,92 +190,235 @@
                 </div>
 
                 <div class="d-flex gap-2">
-    <button type="button" id="btnTambahPesanan" class="btn btn-outline-primary w-50 fw-bold py-2" onclick="app.saveOrderFromForm()">
-        <span class="fs-4 fw-bold me-1">+</span> <i class="fa-solid fa-cart-shopping me-1"></i> Pesanan
-    </button>
-    <button type="submit" class="btn btn-success w-50 fw-bold py-2">
-        <i class="fa-brands fa-whatsapp me-2"></i>WhatsApp
-    </button>
-</div>
+                    <button type="button" id="btnTambahPesanan" class="btn btn-outline-primary w-50 fw-bold py-2" onclick="app.saveOrderFromForm()">
+                        <span class="fs-4 fw-bold me-1">+</span> <i class="fa-solid fa-cart-shopping me-1"></i> Pesanan
+                    </button>
+                    <button type="submit" class="btn btn-success w-50 fw-bold py-2">
+                        <i class="fa-brands fa-whatsapp me-2"></i>WhatsApp
+                    </button>
+                </div>
             </form>
         </div>
       </div>
 
-      <!-- 5. KONTEN HALAMAN MEMBER -->
+      <!-- 5. KONTEN HALAMAN MEMBER (iOS STYLE REDESIGN) -->
       <div id="memberView" class="app-section p-3" style="display: none;">
-          <div id="memberGuestState" class="card border-0 shadow-sm rounded-4 p-4 text-center mb-4 bg-white">
-              <div class="mx-auto mb-3 d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle" style="width: 70px; height: 70px; font-size: 1.8rem;">
-                  <i class="fa-solid fa-user"></i>
-              </div>
-              <h5 class="fw-bold mb-1">Tamu / Pelanggan</h5>
-              <p class="text-muted small mb-3">Silakan masuk atau daftar akun untuk menikmati fitur member.</p>
-              <button class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mb-2" onclick="app.switchToLogin()">Masuk Akun</button>
-              <button class="btn btn-outline-primary w-100 rounded-pill py-2 fw-semibold" onclick="app.switchToRegister()">Daftar Member Baru</button>
+        
+        <!-- TAMPILAN PROFIL TAMU (BELUM LOGIN) -->
+        <div id="tampilanProfilTamu" class="max-w-md mx-auto">
+          <!-- Header Card iOS -->
+          <div class="ios-member-header d-flex align-items-center mb-4">
+            <div class="position-relative" style="cursor: pointer;" onclick="cekSecretLogin('admin.html')" title="Ketuk untuk opsi Admin">
+  <i class="fa-solid fa-circle-user text-primary" style="font-size: 4rem;"></i>
+  <span class="position-absolute bottom-0 end-0 bg-warning border border-white rounded-circle p-1" style="width:14px; height:14px;"></span>
+</div>
+            <div class="ms-3">
+              <h5 class="mb-0 fw-bold fs-4">Selamat Datang</h5>
+              <span class="opacity-75" style="font-size: 0.88rem;">Masuk atau daftar untuk akses member</span>
+            </div>
           </div>
 
-          <div id="memberLoginState" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
-              <h4 class="fw-bold text-primary mb-3 text-center">Login Akun</h4>
-              <form onsubmit="app.handleLogin(event)">
-                  <div class="mb-3">
-                      <label class="form-label small fw-bold">Username</label>
-                      <input type="text" id="loginEmail" class="form-control" required placeholder="Masukkan username">
-                  </div>
-                  <div class="mb-3">
-                      <label class="form-label small fw-bold">Password</label>
-                      <input type="password" id="loginPassword" class="form-control" required placeholder="Masukkan password">
-                  </div>
-                  <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-pill mb-2">Masuk</button>
-                  <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
-                      <a href="javascript:void(0)" onclick="app.switchToForgotPassword()" class="text-decoration-none small text-danger fw-semibold">Lupa password?</a>
-                  </div>
-                  <button type="button" class="btn btn-light w-100 text-secondary rounded-pill btn-sm" onclick="app.switchToGuest()">Kembali</button>
-              </form>
-          </div>
+          <!-- Tombol Aksi iOS -->
+          <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem;">
+              <i class="fa-solid fa-shield-halved text-primary me-2"></i>Akses Akun Member
+            </h6>
+            <p class="text-muted mb-4" style="font-size: 0.82rem; line-height: 1.4;">
+              Nikmati kemudahan pemesanan, cek riwayat pesanan, dan promo khusus pelanggan setia Jastip Sawoo.
+            </p>
 
-          <div id="memberRegisterState" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
-              <h4 class="fw-bold text-primary mb-3 text-center">Daftar Member Baru</h4>
-              <form onsubmit="app.handleRegister(event)">
-                  <div class="mb-3">
-                      <label class="form-label small fw-bold">Username</label>
-                      <input type="text" id="regUsername" class="form-control" required placeholder="Buat username">
-                  </div>
-                  <div class="mb-3">
-                      <label class="form-label small fw-bold">Password</label>
-                      <input type="password" id="regPassword" class="form-control" required placeholder="Buat password">
-                  </div>
-                  <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-pill mb-2">Daftar Sekarang</button>
-                  <button type="button" class="btn btn-light w-100 text-secondary rounded-pill btn-sm" onclick="app.switchToGuest()">Kembali</button>
-              </form>
-          </div>
-
-          <div id="memberForgotPasswordState" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
-              <h4 class="fw-bold text-primary mb-3 text-center">Reset Password</h4>
-              <form onsubmit="app.handleForgotPassword(event)">
-                  <div class="mb-3">
-                      <label class="form-label small fw-bold">Username</label>
-                      <input type="text" id="forgotUsername" class="form-control" required placeholder="Masukkan username Anda">
-                  </div>
-                  <div class="mb-3">
-                      <label class="form-label small fw-bold">Password Baru</label>
-                      <input type="password" id="forgotNewPassword" class="form-control" required placeholder="Masukkan password baru">
-                  </div>
-                  <button type="submit" class="btn btn-warning w-100 fw-bold py-2 rounded-pill mb-2 text-dark">Reset Password</button>
-                  <button type="button" class="btn btn-light w-100 text-secondary rounded-pill btn-sm" onclick="app.switchToLogin()">Kembali ke Login</button>
-              </form>
-          </div>
-
-          <div id="memberProfileState" class="d-none">
-              <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white mb-3">
-                  <div class="bg-primary-subtle text-primary rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px; font-size: 1.8rem;">
-                      <i class="fa-solid fa-user-check"></i>
-                  </div>
-                  <h5 class="fw-bold mb-1" id="profileNameDisplay">Nama Member</h5>
-                  <span class="badge bg-primary-subtle text-primary px-3 py-1 rounded-pill" id="profileRoleDisplay">MEMBER</span>
-              </div>
-              <button class="btn btn-danger w-100 rounded-pill py-2 fw-semibold shadow-sm" onclick="app.logout()">
-                  <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Keluar Sesi
+            <div class="d-flex flex-column gap-3">
+              <!-- Tombol Utama: Daftar Member -->
+              <button class="btn btn-primary w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center" onclick="bukaMenuDaftar()">
+                <i class="fa-solid fa-user-plus me-2"></i> Daftar Member Baru
               </button>
+
+              <!-- Tombol Kedua: Login Akun -->
+              <button class="btn btn-outline-primary w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center" onclick="bukaMenuLogin()">
+                <i class="fa-solid fa-right-to-bracket me-2"></i> Login Akun
+              </button>
+            </div>
+
+            <hr class="my-4" style="border-color: #eee;">
+
+            <!-- Bantuan CS -->
+            <div class="d-flex align-items-center justify-content-between text-dark" onclick="app.showToast('Silakan Hubungi WhatsApp CS')" style="cursor:pointer;">
+              <div class="d-flex align-items-center">
+                <div class="bg-primary-subtle text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <i class="fa-solid fa-headset fs-5"></i>
+                </div>
+                <div>
+                  <span class="fw-bold d-block" style="font-size: 0.88rem;">Butuh Bantuan?</span>
+                  <span class="text-muted" style="font-size: 0.75rem;">Hubungi Customer Service kami</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-muted" style="font-size: 0.8rem;"></i>
+            </div>
           </div>
+        </div>
+
+        <!-- KOTAK FORM LOGIN, DAFTAR & RESET -->
+        <div id="akunContainer" class="card border-0 shadow-sm rounded-4 p-4 mx-auto bg-white" style="display: none; max-width: 420px; margin-top: 10px;">
+          
+          <!-- Form Login -->
+          <div id="formLoginContainer">
+            <div class="text-center mb-4">
+              <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                <i class="fa-solid fa-user-lock fs-3"></i>
+              </div>
+              <h4 class="fw-bold text-dark mb-1">Login Member</h4>
+              <span class="text-muted" style="font-size: 0.82rem;">Masukkan kredensial akun Anda</span>
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="username" class="form-label small fw-bold"><i class="fa-solid fa-user me-1"></i> Username</label>
+              <input type="text" id="username" class="form-control rounded-3" placeholder="Masukkan username" onkeypress="cekEnter(event)">
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="password" class="form-label small fw-bold"><i class="fa-solid fa-key me-1"></i> Password</label>
+              <input type="password" id="password" class="form-control rounded-3" placeholder="Masukkan password" onkeypress="cekEnter(event)">
+            </div>
+
+            <button onclick="verifikasiLogin()" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-2">
+              Masuk Sekarang
+            </button>
+
+            <div id="pesanLogin" class="mt-3 text-center" style="font-weight: 600; font-size: 0.85rem;"></div>
+
+            <div class="d-flex justify-content-center align-items-center mt-3 mb-2">
+              <a href="javascript:void(0)" onclick="bukaFormLupaPassword()" class="text-danger fw-semibold text-decoration-none" style="font-size: 0.82rem;">Lupa Password / Reset via Nomor?</a>
+            </div>
+
+            <p class="text-center mt-3 mb-2 text-muted" style="font-size: 0.85rem;">
+              Belum punya akun? <a href="javascript:void(0)" onclick="tampilkanDaftar()" class="text-primary fw-bold text-decoration-none">Daftar di sini</a>
+            </p>
+
+            <button onclick="kembaliKeProfilTamu()" class="btn btn-light w-100 rounded-pill py-2 text-secondary mt-2">Batal / Kembali</button>
+          </div>
+
+          <!-- Form Daftar (Dengan Nomor HP, Username, Password) -->
+          <div id="formDaftarContainer" style="display: none;">
+            <div class="text-center mb-4">
+              <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                <i class="fa-solid fa-user-plus fs-3"></i>
+              </div>
+              <h4 class="fw-bold text-dark mb-1">Daftar Member</h4>
+              <span class="text-muted" style="font-size: 0.82rem;">Buat akun baru dengan Nomor HP & Username</span>
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="regPhone" class="form-label small fw-bold"><i class="fa-solid fa-phone me-1"></i> Nomor HP / WhatsApp</label>
+              <input type="text" id="regPhone" class="form-control rounded-3" placeholder="Contoh: 081234567890">
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="regUsername" class="form-label small fw-bold"><i class="fa-solid fa-user me-1"></i> Buat Username</label>
+              <input type="text" id="regUsername" class="form-control rounded-3" placeholder="Contoh: agus123">
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="regPassword" class="form-label small fw-bold"><i class="fa-solid fa-lock me-1"></i> Buat Password</label>
+              <input type="password" id="regPassword" class="form-control rounded-3" placeholder="Minimal 6 karakter">
+            </div>
+
+            <button onclick="prosesDaftar()" class="btn btn-success w-100 rounded-pill py-2 fw-semibold mt-2">
+              Daftar Sekarang
+            </button>
+
+            <div id="pesanDaftar" class="mt-3 text-center" style="font-weight: 600; font-size: 0.85rem;"></div>
+
+            <p class="text-center mt-4 mb-2 text-muted" style="font-size: 0.85rem;">
+              Sudah punya akun? <a href="javascript:void(0)" onclick="tampilkanLogin()" class="text-primary fw-bold text-decoration-none">Login di sini</a>
+            </p>
+
+            <button onclick="kembaliKeProfilTamu()" class="btn btn-light w-100 rounded-pill py-2 text-secondary mt-2">Batal / Kembali</button>
+          </div>
+
+          <!-- Form Reset Password via Nomor HP -->
+          <div id="formLupaPassContainer" style="display: none;">
+            <div class="text-center mb-4">
+              <div class="bg-warning-subtle text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                <i class="fa-solid fa-key fs-3"></i>
+              </div>
+              <h4 class="fw-bold text-dark mb-1">Reset Password</h4>
+              <span class="text-muted" style="font-size: 0.82rem;">Masukkan nomor terdaftar untuk mereset akun</span>
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="resetPhone" class="form-label small fw-bold"><i class="fa-solid fa-phone me-1"></i> Nomor HP / WhatsApp Terdaftar</label>
+              <input type="text" id="resetPhone" class="form-control rounded-3" placeholder="Contoh: 081234567890">
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="resetNewPassword" class="form-label small fw-bold"><i class="fa-solid fa-lock me-1"></i> Password Baru</label>
+              <input type="password" id="resetNewPassword" class="form-control rounded-3" placeholder="Minimal 6 karakter baru">
+            </div>
+
+            <button onclick="prosesResetPasswordViaNomor()" class="btn btn-warning w-100 rounded-pill py-2 fw-semibold mt-2 text-dark">
+              Simpan Password Baru
+            </button>
+
+            <div id="pesanReset" class="mt-3 text-center" style="font-weight: 600; font-size: 0.85rem;"></div>
+
+            <button onclick="tampilkanLogin()" class="btn btn-light w-100 rounded-pill py-2 text-secondary mt-3">Kembali ke Login</button>
+          </div>
+
+        </div>
+
+        <!-- DASHBOARD SETELAH MEMBER LOGIN -->
+        <div id="memberDashboardView" style="display: none;" class="max-w-md mx-auto">
+          <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white mb-3">
+              <div class="bg-primary-subtle text-primary rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px; font-size: 1.8rem;">
+                  <i class="fa-solid fa-user-check"></i>
+              </div>
+              <h5 class="fw-bold mb-1" id="namaMemberLogin">Member</h5>
+              <span class="badge bg-primary-subtle text-primary px-3 py-1 rounded-pill" style="font-size: 0.72rem; font-weight: 700;">
+                <i class="fa-solid fa-circle-check me-1"></i> Akun Terverifikasi
+              </span>
+          </div>
+
+          <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem;">Pengaturan Akun</h6>
+            
+            <div class="d-flex flex-column gap-3">
+              <button class="btn btn-outline-primary w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center" onclick="bukaFormGantiPassword()">
+                <i class="fa-solid fa-key me-2"></i> Ganti Password
+              </button>
+
+              <button class="btn btn-outline-danger w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center" onclick="prosesLogout()">
+                <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Keluar (Logout)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOTAK FORM GANTI PASSWORD -->
+        <div id="formGantiPassContainer" class="card border-0 shadow-sm rounded-4 p-4 mx-auto bg-white" style="display: none; max-width: 420px; margin-top: 10px;">
+          <div class="text-center mb-4">
+            <h4 class="fw-bold text-dark mb-1">Ganti Password</h4>
+            <span class="text-muted" style="font-size: 0.82rem;">Perbarui kata sandi demi keamanan akun</span>
+          </div>
+
+          <div class="mb-3 text-start">
+            <label for="passLama" class="form-label small fw-bold">Password Lama</label>
+            <input type="password" id="passLama" class="form-control rounded-3" placeholder="Masukkan password lama">
+          </div>
+
+          <div class="mb-3 text-start">
+            <label for="passBaru" class="form-label small fw-bold">Password Baru</label>
+            <input type="password" id="passBaru" class="form-control rounded-3" placeholder="Masukkan password baru">
+          </div>
+
+          <button onclick="simpanPasswordBaru()" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-2">
+            Simpan Password Baru
+          </button>
+
+          <div id="pesanGantiPass" class="mt-3 text-center" style="font-weight: 600; font-size: 0.85rem;"></div>
+
+          <button onclick="tutupFormGantiPassword()" class="btn btn-light w-100 rounded-pill py-2 text-secondary mt-3">Kembali ke Profil</button>
+        </div>
+
       </div>
 
     </main>
@@ -296,6 +439,7 @@
             <span>Member</span>
         </button>
     </nav>
+  </div>
 
   <!-- TOAST NOTIFICATION -->
   <div id="toastMessage" class="shadow-sm"></div>
